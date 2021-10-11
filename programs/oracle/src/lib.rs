@@ -11,6 +11,7 @@ mod oracle {
     }
 
     pub fn update(ctx: Context<Update>, token: u8, price: u64) -> ProgramResult {
+        // TODO: add if not client
         let oracle = &mut ctx.accounts.oracle;
         let clock = &ctx.accounts.clock;
         let token = Token::from(token);
@@ -35,6 +36,45 @@ mod oracle {
             Token::RAY => oracle.ray.price = price,
             Token::FTT => oracle.ftt.price = price,
         };
+
+        Ok(())
+    }
+
+    pub fn batch_update(
+        ctx: Context<Update>,
+        sol_price: u64,
+        btc_price: u64,
+        eth_price: u64,
+        ray_price: u64,
+        ftt_price: u64,
+        srm_price: u64,
+    ) -> ProgramResult {
+        // TODO: add if not client
+        let oracle = &mut ctx.accounts.oracle;
+        let clock = &ctx.accounts.clock;
+        let slot = clock.slot;
+        let epoch = clock.epoch;
+        let timestamp = clock.epoch;
+
+        msg!(
+            "Setting SOL={} ETH={} BTC={} SRM={} RAY={} FTT={} as of Slot:{} Epoch:{} TS:{}",
+            sol_price,
+            eth_price,
+            btc_price,
+            srm_price,
+            ray_price,
+            ftt_price,
+            slot,
+            epoch,
+            timestamp
+        );
+
+        oracle.sol.price = sol_price;
+        oracle.eth.price = eth_price;
+        oracle.btc.price = btc_price;
+        oracle.srm.price = srm_price;
+        oracle.ray.price = ray_price;
+        oracle.ftt.price = ftt_price;
 
         Ok(())
     }
