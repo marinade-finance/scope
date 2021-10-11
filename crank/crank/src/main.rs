@@ -28,12 +28,15 @@ async fn main() -> Result<()> {
     let ethusd: Pubkey = "JBu1AL4obBcCMqKBBxhpWCNUt136ijcuMZLFvTP7iWdB".parse()?;
     let btcusd: Pubkey = "GVXRSBjFk6e6J3NbVPXohDJetcTjaeeuykUpbQF8UoMU".parse()?;
     let solusd: Pubkey = "H6ARHf6YXhGYeQfUzQNGk6rDNnLBQKrenN712K4AQJEG".parse()?;
-    let rayusd: Pubkey = "H6ARHf6YXhGYeQfUzQNGk6rDNnLBQKrenN712K4AQJEG".parse()?;
-    let fttusd: Pubkey = "H6ARHf6YXhGYeQfUzQNGk6rDNnLBQKrenN712K4AQJEG".parse()?;
-    let srmusd: Pubkey = "H6ARHf6YXhGYeQfUzQNGk6rDNnLBQKrenN712K4AQJEG".parse()?;
+    let rayusd: Pubkey = "AnLf8tVYCM816gmBjiy8n53eXKKEDydT5piYjjQDPgTB".parse()?;
+    let fttusd: Pubkey = "8JPJJkmDScpcNmBRKGZuPuG2GYAveQgP3t5gFuMymwvF".parse()?;
+    let srmusd: Pubkey = "3NBReDRTLKMQEKiLD5tGcx4kXbTf88b7f2xLS9UuGjym".parse()?;
 
-    let shadow =
-        BlockchainShadow::new_for_accounts(&vec![ethusd, btcusd, solusd], Network::Mainnet).await?;
+    let shadow = BlockchainShadow::new_for_accounts(
+        &vec![ethusd, btcusd, solusd, rayusd, fttusd, srmusd],
+        Network::Mainnet,
+    )
+    .await?;
 
     let crank = HubbleClient::new(Cluster::Localnet);
 
@@ -64,7 +67,7 @@ async fn main() -> Result<()> {
             sol_price, btc_price, eth_price, ray_price, ftt_price, srm_price,
         );
 
-        tokio::time::sleep(Duration::from_secs(3)).await;
+        tokio::time::sleep(Duration::from_secs(1)).await;
     }
 
     shadow.worker().await?;
@@ -197,6 +200,88 @@ mod tests {
             std::slice::from_ref(&instruction),
             Some(&admin.pubkey()),
             &[&admin],
+            recent_hash,
+        );
+
+        let signature = send_txn(&client, &txn, false).unwrap();
+        println!("Signature {}", signature);
+    }
+
+    #[test]
+    fn crank_deposit_collateral() {
+        let cluster = Cluster::Localnet;
+        let client = RpcClient::new(cluster.url().to_string());
+        let client = Arc::new(client);
+
+        let (recent_hash, _fee_calc) = client.get_recent_blockhash().unwrap();
+        println!("Sending request ...");
+
+        // #[account(mut, signer)]
+        // pub owner: AccountInfo<'info>,
+        // #[account(mut)]
+        // pub borrowing_market_state: ProgramAccount<'info, BorrowingMarketState>,
+        // pub borrowing_vaults: ProgramAccount<'info, BorrowingVaults>,
+        // #[account(mut)]
+        // pub user_metadata: ProgramAccount<'info, UserMetadata>,
+        // #[account(mut)]
+        // pub user_positions: Loader<'info, UserPositions>,
+        // #[account(mut)]
+        // pub collateral_from: AccountInfo<'info>,
+        // #[account(mut)]
+        // pub collateral_to: AccountInfo<'info>,
+        // pub collateral_token_mint: AccountInfo<'info>,
+        // pub token_program: AccountInfo<'info>,
+        // pub system_program: AccountInfo<'info>,
+
+        let owner = Keypair::from_base58_string("2adUJYFVwgdMGEjCB7w73QMcogJhufzVYMFqqXfuVCFA89M5i2sF8mdhRD8pj3DEoaAHbsMP29UGi4SvhLkfNGVw");
+        println!("Owner {}", owner.pubkey());
+        let borrowing_market_state =
+            Pubkey::from_str("9CxdNQSSYAAYnnRP9dBwzGugtsRhZpv6jF4HM2iZEbgd").unwrap();
+        let borrowing_vaults =
+            Pubkey::from_str("9nz2rrzrpyMAewVNuwwxb9irFLBWqmjkyXXq8XGm9PBw").unwrap();
+        let user_metadata =
+            Pubkey::from_str("GPamWzpnwYwoqgmB5opXtuEvf3HqsuX4fLcKBtrEJai5").unwrap();
+        let user_positions =
+            Pubkey::from_str("2Sh1QzzkSW9scs5nQGSdDnvcytk7W4zapcEnMz3tsUcR").unwrap();
+        let collateral_from = owner.pubkey().clone();
+        let colalteral_to =
+            Pubkey::from_str("6iqdgjWdKfTKwcRJqRyRAr3bUfnDzgeKGCRUVe7bbj7E").unwrap();
+        let collateral_token_mint =
+            Pubkey::from_str("9nz2rrzrpyMAewVNuwwxb9irFLBWqmjkyXXq8XGm9PBw").unwrap();
+        let token_program =
+            Pubkey::from_str("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA").unwrap();
+        let system_program = Pubkey::from_str("11111111111111111111111111111111").unwrap();
+
+        let mut account_metas = vec![];
+        account_metas.push(AccountMeta::new(owner.pubkey(), true));
+        account_metas.push(AccountMeta::new(borrowing_market_state, false));
+        account_metas.push(AccountMeta::new_readonly(borrowing_vaults, false));
+        account_metas.push(AccountMeta::new_readonly(user_metadata, false));
+        account_metas.push(AccountMeta::new(user_positions, false));
+        account_metas.push(AccountMeta::new(collateral_from, false));
+        account_metas.push(AccountMeta::new(colalteral_to, false));
+        account_metas.push(AccountMeta::new_readonly(collateral_token_mint, false));
+        account_metas.push(AccountMeta::new_readonly(token_program, false));
+        account_metas.push(AccountMeta::new_readonly(system_program, false));
+
+        let mut instruction_data = vec![];
+        let update_instruction_sighash = [156, 131, 142, 116, 146, 247, 162, 120];
+        let update_instruction_amount_in_lamports = borsh::to_vec(&(3 as u64)).unwrap();
+        let update_instruction_collateral = borsh::to_vec(&(20 as u8)).unwrap();
+        instruction_data.extend_from_slice(&update_instruction_sighash);
+        instruction_data.extend_from_slice(&update_instruction_amount_in_lamports);
+        instruction_data.extend_from_slice(&update_instruction_collateral);
+
+        let instruction = Instruction {
+            program_id: Pubkey::from_str("8v1DhJaewvhbhDmptNrkYig7YFcExsRKteR3cYjLw2iy").unwrap(),
+            accounts: account_metas,
+            data: instruction_data,
+        };
+
+        let txn = Transaction::new_signed_with_payer(
+            std::slice::from_ref(&instruction),
+            Some(&owner.pubkey()),
+            &[&owner],
             recent_hash,
         );
 
