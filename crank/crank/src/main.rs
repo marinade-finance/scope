@@ -3,6 +3,7 @@ use pyth_client::{cast, Price};
 use serum_common::client::rpc::send_txn;
 use serum_common::client::Cluster;
 use solana_client::rpc_client::RpcClient;
+use solana_sdk::native_token::LAMPORTS_PER_SOL;
 use solana_sdk::signature::Signer;
 use solana_sdk::{
     instruction::{AccountMeta, Instruction},
@@ -380,22 +381,37 @@ impl HubbleClient {
             recent_hash,
         );
 
-        println!(
-            "[{:?}] Batch updating SOL={} ETH={} BTC={} SRM={} RAY={} FTT={}",
-            chrono::offset::Utc::now(),
-            sol_price,
-            btc_price,
-            eth_price,
-            ray_price,
-            ftt_price,
-            srm_price,
-        );
+        let lamports_before = self
+            .client
+            .get_account(&self.admin.pubkey())
+            .unwrap()
+            .lamports;
 
         let signature = send_txn(&self.client, &txn, false).unwrap();
+
+        let lamports_after = self
+            .client
+            .get_account(&self.admin.pubkey())
+            .unwrap()
+            .lamports;
+
+        let sol_price_factor = 100_000_000.0;
+        let sol_usd_price = sol_price as f64 / sol_price_factor;
+        let lamports_usd_price = sol_usd_price / (LAMPORTS_PER_SOL as f64);
+        let cost = ((lamports_before - lamports_after) as f64) * lamports_usd_price;
+
         println!(
-            "[{:?}] Batch updated with signature {}",
+            "[{:?}] Batch updated cost=${} SOL={} BTC={} ETH={} RAY={} FTT={} SRM={} sig={}..{}",
             chrono::offset::Utc::now(),
-            signature
+            cost,
+            sol_price as f64 / sol_price_factor,
+            btc_price as f64 / sol_price_factor,
+            eth_price as f64 / sol_price_factor,
+            ray_price as f64 / sol_price_factor,
+            ftt_price as f64 / sol_price_factor,
+            srm_price as f64 / sol_price_factor,
+            &signature.to_string()[..5],
+            &signature.to_string()[signature.to_string().len() - 5..]
         );
     }
 }
