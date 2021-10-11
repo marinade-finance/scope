@@ -60,13 +60,6 @@ async fn main() -> Result<()> {
         let srmacc = shadow.get_account(&srmusd).unwrap();
         let srm_price = cast::<Price>(&srmacc.data).agg.price as u64;
 
-        println!("ETH/USD: {}", eth_price);
-        println!("BTC/USD: {}", btc_price);
-        println!("SOL/USD: {}", sol_price);
-        println!("RAY/USD: {}", ray_price);
-        println!("FTT/USD: {}", ftt_price);
-        println!("SRM/USD: {}", srm_price);
-
         crank.batch_update_oracle(
             sol_price, btc_price, eth_price, ray_price, ftt_price, srm_price,
         );
@@ -302,10 +295,21 @@ impl HubbleClient {
             recent_hash,
         );
 
+        println!(
+            "[{:?}] Batch updating SOL={} ETH={} BTC={} SRM={} RAY={} FTT={}",
+            chrono::offset::Utc::now(),
+            sol_price,
+            btc_price,
+            eth_price,
+            ray_price,
+            ftt_price,
+            srm_price,
+        );
+
         let signature = send_txn(&self.client, &txn, false).unwrap();
         println!(
-            "[{:?}] Batch update signature {}",
-            std::time::Instant::now(),
+            "[{:?}] Batch updated with signature {}",
+            chrono::offset::Utc::now(),
             signature
         );
     }
