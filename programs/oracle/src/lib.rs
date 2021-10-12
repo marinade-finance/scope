@@ -51,23 +51,23 @@ mod oracle {
     ) -> ProgramResult {
         // TODO: add if not client
         let oracle = &mut ctx.accounts.oracle;
-        let clock = &ctx.accounts.clock;
-        let slot = clock.slot;
-        let epoch = clock.epoch;
-        let timestamp = clock.epoch;
+        // let clock = &ctx.accounts.clock;
+        // let slot = clock.slot;
+        // let epoch = clock.epoch;
+        // let timestamp = clock.epoch;
 
-        msg!(
-            "Setting SOL={} ETH={} BTC={} SRM={} RAY={} FTT={} as of Slot:{} Epoch:{} TS:{}",
-            sol_price,
-            eth_price,
-            btc_price,
-            srm_price,
-            ray_price,
-            ftt_price,
-            slot,
-            epoch,
-            timestamp
-        );
+        // msg!(
+        //     "Setting SOL={} ETH={} BTC={} SRM={} RAY={} FTT={} as of Slot:{} Epoch:{} TS:{}",
+        //     sol_price,
+        //     eth_price,
+        //     btc_price,
+        //     srm_price,
+        //     ray_price,
+        //     ftt_price,
+        //     slot,
+        //     epoch,
+        //     timestamp
+        // );
 
         oracle.sol.price = sol_price;
         oracle.eth.price = eth_price;

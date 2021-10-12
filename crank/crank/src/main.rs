@@ -398,11 +398,14 @@ impl HubbleClient {
         let sol_price_factor = 100_000_000.0;
         let sol_usd_price = sol_price as f64 / sol_price_factor;
         let lamports_usd_price = sol_usd_price / (LAMPORTS_PER_SOL as f64);
-        let cost = ((lamports_before - lamports_after) as f64) * lamports_usd_price;
+        let cost =
+            (lamports_before.checked_sub(lamports_after).unwrap_or(0) as f64) * lamports_usd_price;
 
         println!(
-            "[{:?}] Batch updated cost=${} SOL={} BTC={} ETH={} RAY={} FTT={} SRM={} sig={}..{}",
+            "[{:?}] Batch updated before={} after={} cost=${} SOL={} BTC={} ETH={} RAY={} FTT={} SRM={} sig={}..{}",
             chrono::offset::Utc::now(),
+            lamports_before,
+            lamports_after,
             cost,
             sol_price as f64 / sol_price_factor,
             btc_price as f64 / sol_price_factor,
