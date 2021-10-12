@@ -1,4 +1,4 @@
-import { Keypair, PublicKey, SystemProgram } from '@solana/web3.js';
+import { Keypair, PublicKey, SystemProgram, SYSVAR_CLOCK_PUBKEY } from '@solana/web3.js';
 import { strictEqual } from 'assert';
 import * as fs from "fs";
 import { Provider, Program, setProvider, workspace, BN } from "@project-serum/anchor"
@@ -21,10 +21,10 @@ describe("oracle", () => {
     it("Uses the workspace to invoke the initialize instruction", async () => {
 
         let oracleAccount = Keypair.generate();
-        let solPrice = 0;
+        let price = 0;
         console.log("OracleAcc", oracleAccount.secretKey);
 
-        await program.rpc.initialize(new BN(solPrice), {
+        await program.rpc.initialize({
             accounts: {
                 admin: admin.publicKey,
                 oracle: oracleAccount.publicKey,
@@ -36,14 +36,16 @@ describe("oracle", () => {
         {
             let oracle = await program.account.oracle.fetch(oracleAccount.publicKey);
             console.log("Oracle", oracle);
-            strictEqual(oracle.solPrice.toNumber(), solPrice);
         }
 
         let updatedSolPrice = 20;
-        await program.rpc.update(new BN(updatedSolPrice), {
+        await program.rpc.update(
+            new BN(3),      // SRM
+            new BN(updatedSolPrice), {
             accounts: {
                 admin: admin.publicKey,
                 oracle: oracleAccount.publicKey,
+                clock: SYSVAR_CLOCK_PUBKEY
             },
             signers: [admin]
         });
@@ -51,7 +53,7 @@ describe("oracle", () => {
         {
             let oracle = await program.account.oracle.fetch(oracleAccount.publicKey);
             console.log("Oracle", oracle);
-            strictEqual(oracle.solPrice.toNumber(), updatedSolPrice);
+            strictEqual(oracle.srm.price.toNumber(), updatedSolPrice);
         }
     });
 });
