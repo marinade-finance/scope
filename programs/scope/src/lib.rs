@@ -91,6 +91,7 @@ pub struct Configuration {
     pub admin_pbk: Pubkey,
     pub oracle_mappings_pbk: Pubkey,
     pub oracle_prices_pbk: Pubkey,
+    _padding: [u64; 1267],
 }
 
 #[error_code]
