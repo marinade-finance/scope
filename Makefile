@@ -43,14 +43,18 @@ FAKE_PYTH_PROGRAM_KEYPAIR := keys/$(CLUSTER)/pyth.json
 
 SCOPE_PROGRAM_SO := target/deploy/scope.so
 FAKE_PYTH_PROGRAM_SO := target/deploy/pyth.so
+SCOPE_CLI := target/release/scope
 
 SCOPE_PROGRAM_ID != solana-keygen pubkey $(SCOPE_PROGRAM_KEYPAIR)
 FAKE_PYTH_PROGRAM_ID != solana-keygen pubkey $(FAKE_PYTH_PROGRAM_KEYPAIR)
 PROGRAM_DEPLOY_ACCOUNT != solana-keygen pubkey $(OWNER_KEYPAIR)
 
-.PHONY: deploy build-client run listen deploy deploy-int airdrop test test-rust test-ts
+.PHONY: deploy build-client run listen deploy deploy-int airdrop test test-rust test-ts $(SCOPE_CLI)
 
-build: $(SCOPE_PROGRAM_SO) $(FAKE_PYTH_PROGRAM_SO)
+build: $(SCOPE_PROGRAM_SO) $(FAKE_PYTH_PROGRAM_SO) $(SCOPE_CLI)
+
+$(SCOPE_CLI):
+> cargo build -p scope-cli --release
 
 # Don't autodelete the keys, we want to keep them as much as possible 
 .PRECIOUS: keys/$(CLUSTER)/%.json
@@ -62,8 +66,7 @@ keys/$(CLUSTER)/%.json:
 target/deploy/%.so: keys/$(CLUSTER)/%.json $(shell find programs -name "*.rs") $(shell find programs -name "Cargo.toml") Cargo.lock
 >@ echo "*******Build $* *******"
 >@ CLUSTER=$(CLUSTER) anchor build -p $*
-#< Optional but just to ensure deploys without the makefile behave correctly 
->@ cp -f keys/$(CLUSTER)/$*.json target/deploy/$*-keypair.json 
+>@ cp -f keys/$(CLUSTER)/$*.json target/deploy/$*-keypair.json #< Optional but just to ensure deploys without the makefile behave correctly 
 
 deploy:
 >@ PROGRAM_SO=$(SCOPE_PROGRAM_SO) PROGRAM_KEYPAIR=$(SCOPE_PROGRAM_KEYPAIR) $(MAKE) deploy-int
@@ -82,8 +85,8 @@ test: test-rust test-ts
 test-rust:
 > cargo test
 
-test-ts:
-> yarn run ts-mocha tests/**/*.ts
+test-ts: $(SCOPE_CLI)
+> yarn run ts-mocha -t 1000000 tests/**/*.ts
 
 ## Client side
 build-client:
