@@ -94,12 +94,12 @@ fn main() -> Result<()> {
 
     let client = Client::new_with_options(args.cluster, Rc::new(payer), commitment);
 
-    let mut scope = ScopeClient::new(client, args.program_id, args.price_feed)?;
+    let mut scope = ScopeClient::new(client, args.program_id, &args.price_feed)?;
 
     match args.action {
         Actions::Download { mapping } => download(&mut scope, &mapping),
         Actions::Upload { mapping } => upload(&mut scope, &mapping),
-        Actions::Init { mapping } => init(&mut scope, &mapping),
+        Actions::Init { mapping } => init(&mut scope, &args.price_feed, &mapping),
         Actions::Crank {
             refresh_interval_ms,
             mapping,
@@ -107,10 +107,10 @@ fn main() -> Result<()> {
     }
 }
 
-fn init(scope: &mut ScopeClient, mapping: &impl AsRef<Path>) -> Result<()> {
+fn init(scope: &mut ScopeClient, feed_name: &str, mapping: &impl AsRef<Path>) -> Result<()> {
     let token_list = TokenConfList::read_from_file(&mapping)?;
     scope.set_local_mapping(&token_list)?;
-    scope.init_program()
+    scope.init_program(feed_name)
 }
 
 fn upload(scope: &mut ScopeClient, mapping: &impl AsRef<Path>) -> Result<()> {

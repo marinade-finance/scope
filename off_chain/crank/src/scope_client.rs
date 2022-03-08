@@ -1,10 +1,15 @@
-use anchor_client::{solana_sdk::pubkey::Pubkey, Client, Program};
+use std::mem::size_of;
 
-use solana_sdk::{clock::Clock, instruction::AccountMeta, system_program, sysvar::SysvarId};
+use anchor_client::{Client, Program};
 
-use anyhow::{anyhow, bail, Result};
+use solana_sdk::{
+    clock::Clock, instruction::AccountMeta, pubkey::Pubkey, signature::Keypair, signer::Signer,
+    system_instruction, system_program, sysvar::SysvarId,
+};
 
-use scope::{accounts, instruction, OracleMappings, OraclePrices};
+use anyhow::{anyhow, bail, Context, Result};
+
+use scope::{accounts, instruction, Configuration, OracleMappings, OraclePrices};
 use tracing::{debug, error, info, warn};
 
 use crate::config::{TokenConf, TokenConfList};
@@ -24,14 +29,27 @@ pub struct ScopeClient {
 }
 
 impl ScopeClient {
-    pub fn new(client: Client, program_id: Pubkey, price_feed: String) -> Result<Self> {
+    #[tracing::instrument(skip(client))] //Skip client that does not impl Debug
+    pub fn new(client: Client, program_id: Pubkey, price_feed: &str) -> Result<Self> {
         let program = client.program(program_id);
-
         let program_data_acc = find_data_address(&program_id);
-        let (oracle_prices_acc, _) =
-            Pubkey::find_program_address(&[b"prices", price_feed.as_bytes()], &program_id);
-        let (oracle_mappings_acc, _) =
-            Pubkey::find_program_address(&[b"mappings", price_feed.as_bytes()], &program_id);
+
+        // Retrieve accounts in configuration PDA
+        let (configuration_acc, _) =
+            Pubkey::find_program_address(&[b"conf", price_feed.as_bytes()], &program_id);
+
+        let (oracle_prices_acc, oracle_mappings_acc) = match program
+            .account::<Configuration>(configuration_acc)
+        {
+            Ok(configuration) => (
+                configuration.oracle_prices_pbk,
+                configuration.oracle_mappings_pbk,
+            ),
+            Err(e) => {
+                warn!("Error while retrieving program configuration account, the program might be uninitialized: {:?}", e);
+                (Pubkey::default(), Pubkey::default())
+            }
+        };
 
         const EMPTY_STRING: String = String::new();
 
@@ -46,8 +64,8 @@ impl ScopeClient {
     }
 
     /// Initialize the program accounts and set the oracle mappings to the local version
-    pub fn init_program(&self) -> Result<()> {
-        self.ix_initialize()?;
+    pub fn init_program(&mut self, feed_name: &str) -> Result<()> {
+        self.ix_initialize(feed_name)?;
 
         for (token, op_mapping) in self.oracle_mappings.iter().enumerate() {
             if let Some(mapping) = op_mapping {
@@ -73,6 +91,9 @@ impl ScopeClient {
 
     /// Update the remote oracle mapping from the local
     pub fn upload_oracle_mapping(&self) -> Result<()> {
+        if self.oracle_mappings_acc == Pubkey::default() {
+            bail!("Program is not initialized");
+        }
         let onchain_mapping = self.get_program_mapping()?.price_info_accounts;
 
         // For all "token" local and remote
@@ -90,6 +111,10 @@ impl ScopeClient {
 
     /// Update the local oracle mapping from the on-chain version
     pub fn download_oracle_mapping(&mut self) -> Result<()> {
+        if self.oracle_mappings_acc == Pubkey::default() {
+            bail!("Program is not initialized");
+        }
+
         let onchain_mapping = self.get_program_mapping()?.price_info_accounts;
         let zero_pk = Pubkey::default();
         for (loc_mapping, rem_mapping) in self.oracle_mappings.iter_mut().zip(onchain_mapping) {
@@ -127,6 +152,10 @@ impl ScopeClient {
     #[tracing::instrument(skip(self))]
     /// Refresh all price referenced in oracle mapping
     pub fn refresh_all_prices(&self) -> Result<()> {
+        if self.oracle_mappings_acc == Pubkey::default() {
+            bail!("Program is not initialized");
+        }
+
         info!("Refresh all prices");
         let to_refresh_idx: Vec<u8> = self
             .oracle_mappings
@@ -153,34 +182,80 @@ impl ScopeClient {
 
     /// Get all prices
     pub fn get_prices(&self) -> Result<OraclePrices> {
+        if self.oracle_prices_acc == Pubkey::default() {
+            bail!("Program is not initialized");
+        }
+
         let prices: OraclePrices = self.program.account(self.oracle_prices_acc)?;
         Ok(prices)
     }
 
     /// Get program oracle mapping
     fn get_program_mapping(&self) -> Result<OracleMappings> {
+        if self.oracle_mappings_acc == Pubkey::default() {
+            bail!("Program is not initialized");
+        }
         let mapping: OracleMappings = self.program.account(self.oracle_mappings_acc)?;
         Ok(mapping)
     }
 
     #[tracing::instrument(skip(self))]
-    fn ix_initialize(&self) -> Result<()> {
+    fn ix_initialize(&mut self, price_feed: &str) -> Result<()> {
+        debug!("Entering initialize ix");
+        // Generate accounts keypairs.
+        let oracle_prices_acc = Keypair::new();
+        let oracle_mappings_acc = Keypair::new();
+
+        // Compute configuration PDA pbk
+        let (configuration_acc, _) =
+            Pubkey::find_program_address(&[b"conf", price_feed.as_bytes()], &self.program.id());
+
+        // Prepare init instruction accounts
         let init_account = accounts::Initialize {
-            oracle_prices: self.oracle_prices_acc,
-            oracle_mappings: self.oracle_mappings_acc,
             admin: self.program.payer(),
             program: self.program.id(),
             program_data: self.program_data_acc,
             system_program: system_program::ID,
+            configuration: configuration_acc,
+            oracle_prices: oracle_prices_acc.pubkey(),
+            oracle_mappings: oracle_mappings_acc.pubkey(),
         };
-        let request = self.program.request();
 
-        request
+        let rpc = self.program.rpc();
+
+        let init_res = self
+            .program
+            .request()
+            // Create the price account
+            .instruction(system_instruction::create_account(
+                &self.program.payer(),
+                &oracle_prices_acc.pubkey(),
+                rpc.get_minimum_balance_for_rent_exemption(8_usize + size_of::<OraclePrices>())?,
+                8_u64 + u64::try_from(size_of::<OraclePrices>()).unwrap(), //constant, it cannot fail
+                &self.program.id(),
+            ))
+            // Create the oracle mapping account
+            .instruction(system_instruction::create_account(
+                &self.program.payer(),
+                &oracle_mappings_acc.pubkey(),
+                rpc.get_minimum_balance_for_rent_exemption(8_usize + size_of::<OracleMappings>())?,
+                8_u64 + u64::try_from(size_of::<OracleMappings>()).unwrap(), //constant, it cannot fail
+                &self.program.id(),
+            ))
+            .signer(&oracle_prices_acc)
+            .signer(&oracle_mappings_acc)
             .accounts(init_account)
             .args(instruction::Initialize {
-                feed_name: "first".to_string(),
+                feed_name: price_feed.to_string(),
             })
-            .send()?;
+            .send();
+
+        debug!("Init ix result: {:#?}", init_res);
+        init_res.context("Failed to initialize the account")?;
+
+        // Everything went successfully, update self with the created accounts
+        self.oracle_prices_acc = oracle_prices_acc.pubkey();
+        self.oracle_mappings_acc = oracle_mappings_acc.pubkey();
 
         info!("Accounts initialized successfully");
 
@@ -189,6 +264,10 @@ impl ScopeClient {
 
     #[tracing::instrument(skip(self))]
     fn ix_update_mapping(&self, oracle_account: &Pubkey, token: u64) -> Result<()> {
+        if self.oracle_mappings_acc == Pubkey::default() {
+            bail!("Program is not initialized");
+        }
+
         let update_account = accounts::UpdateOracleMapping {
             oracle_mappings: self.oracle_mappings_acc,
             pyth_price_info: *oracle_account,
@@ -211,6 +290,10 @@ impl ScopeClient {
 
     #[tracing::instrument(skip(self))]
     pub fn ix_refresh_one_price(&self, token: u64) -> Result<()> {
+        if self.oracle_mappings_acc == Pubkey::default() {
+            bail!("Program is not initialized");
+        }
+
         let oracle_account = self
             .oracle_mappings
             .get(usize::try_from(token)?)
@@ -237,6 +320,10 @@ impl ScopeClient {
 
     #[tracing::instrument(skip(self))]
     fn ix_refresh_8_prices(&self, first_token: u64) -> Result<()> {
+        if self.oracle_mappings_acc == Pubkey::default() {
+            bail!("Program is not initialized");
+        }
+
         let first_token_idx = usize::try_from(first_token)?;
         let oracle_accounts: Vec<Pubkey> = self.oracle_mappings
             [first_token_idx..first_token_idx.checked_add(8).unwrap()]
@@ -272,6 +359,10 @@ impl ScopeClient {
 
     #[tracing::instrument(skip(self))]
     fn ix_refresh_price_list(&self, tokens: Vec<u8>) -> Result<()> {
+        if self.oracle_mappings_acc == Pubkey::default() {
+            bail!("Program is not initialized");
+        }
+
         let refresh_account = accounts::RefreshList {
             oracle_prices: self.oracle_prices_acc,
             oracle_mappings: self.oracle_mappings_acc,

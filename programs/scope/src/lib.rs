@@ -1,4 +1,4 @@
-use anchor_lang::prelude::*;
+pub use anchor_lang::prelude::*;
 use num_enum::{TryFromPrimitive, TryFromPrimitiveError};
 use std::convert::TryInto;
 pub mod handlers;
@@ -10,7 +10,7 @@ const PROGRAM_ID: Pubkey = Pubkey::new_from_array(include!(concat!(env!("OUT_DIR
 
 declare_id!(PROGRAM_ID);
 
-pub const MAX_ENTRIES: usize = 255;
+pub const MAX_ENTRIES: usize = 512;
 
 #[program]
 mod scope {
@@ -83,6 +83,14 @@ pub struct OraclePrices {
 #[account(zero_copy)]
 pub struct OracleMappings {
     pub price_info_accounts: [Pubkey; MAX_ENTRIES],
+}
+
+// Configuration account of the program
+#[account(zero_copy)]
+pub struct Configuration {
+    pub admin_pbk: Pubkey,
+    pub oracle_mappings_pbk: Pubkey,
+    pub oracle_prices_pbk: Pubkey,
 }
 
 #[error_code]
