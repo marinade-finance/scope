@@ -2,6 +2,7 @@ use anchor_client::solana_sdk::signature::read_keypair_file;
 use anchor_client::{solana_sdk::pubkey::Pubkey, Client, Cluster};
 
 use scope_client::{ScopeClient, TokenConfList};
+use solana_sdk::clock;
 use solana_sdk::commitment_config::CommitmentConfig;
 use std::path::Path;
 use std::path::PathBuf;
@@ -11,7 +12,7 @@ use std::time::{Duration, Instant};
 
 use clap::{Parser, Subcommand};
 
-use tracing::{error, info, warn};
+use tracing::{error, info, trace, warn};
 
 use anyhow::Result;
 
@@ -152,18 +153,21 @@ fn crank(
     } else {
         scope.download_oracle_mapping()?;
     }
-    let refresh_interval = Duration::from_millis(refresh_interval_ms);
-    info!("Refresh interval set to {:?}", refresh_interval);
+    // Will refresh price if older than this number of slot
+    let refresh_interval_slot = refresh_interval_ms / clock::DEFAULT_MS_PER_SLOT;
+    info!("Refresh interval set to {}", refresh_interval_ms);
     loop {
         let start = Instant::now();
-        if let Err(e) = scope.refresh_all_prices() {
+        if let Err(e) = scope.refresh_prices_older_than(refresh_interval_slot) {
             error!("Error while refreshing prices {:?}", e);
         }
         let elapsed = start.elapsed();
-        if refresh_interval > elapsed {
-            sleep(refresh_interval - elapsed);
+        trace!("last refresh duration was {:?}", elapsed);
+        let oldest_age = scope.get_oldest_price_age()?;
+        if refresh_interval_slot > oldest_age {
+            let sleep_ms = (refresh_interval_slot - oldest_age) * clock::DEFAULT_MS_PER_SLOT;
+            sleep(Duration::from_millis(sleep_ms));
         } else {
-            warn!("last refresh duration was {:?}", elapsed)
         }
     }
 
