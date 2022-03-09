@@ -18,6 +18,8 @@ export function getFakePythProgramId(_cluster?: string) {
 export const ScopeIdl = JSON.parse(fs.readFileSync('./target/idl/scope.json', 'utf8'));
 export const FakePythIdl = JSON.parse(fs.readFileSync('./target/idl/pyth.json', 'utf8'));
 
+export const MAX_NB_TOKENS = 512;
+
 export type Cluster = 'localnet' | 'devnet' | 'mainnet';
 export type SolEnv = {
     cluster: Cluster;

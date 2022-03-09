@@ -116,7 +116,7 @@ pub fn refresh_batch_prices(ctx: Context<RefreshBatch>, first_token: usize) -> R
     Ok(())
 }
 
-pub fn refresh_price_list(ctx: Context<RefreshList>, tokens: &[u8]) -> Result<()> {
+pub fn refresh_price_list(ctx: Context<RefreshList>, tokens: &[u16]) -> Result<()> {
     let oracle_mappings = &ctx.accounts.oracle_mappings.load()?.price_info_accounts;
     let oracle_prices = &mut ctx.accounts.oracle_prices.load_mut()?.prices;
 

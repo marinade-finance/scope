@@ -16,7 +16,7 @@ use crate::config::{TokenConf, TokenConfList};
 use crate::utils::find_data_address;
 
 /// Max number of refresh per tx
-const MAX_REFRESH_CHUNK_SIZE: usize = 28;
+const MAX_REFRESH_CHUNK_SIZE: usize = 27;
 
 /// Default value for token_pairs
 const EMPTY_STRING: String = String::new();
@@ -172,13 +172,13 @@ impl ScopeClient {
         }
 
         info!("Refresh all prices");
-        let to_refresh_idx: Vec<u8> = self
+        let to_refresh_idx: Vec<u16> = self
             .oracle_mappings
             .iter()
             .enumerate()
             .filter_map(|(idx, e)| {
                 if e.is_some() {
-                    Some(u8::try_from(idx).unwrap())
+                    Some(u16::try_from(idx).unwrap())
                 } else {
                     None
                 }
@@ -186,7 +186,7 @@ impl ScopeClient {
             .collect();
 
         for (nb, chunk) in to_refresh_idx.chunks(MAX_REFRESH_CHUNK_SIZE).enumerate() {
-            debug!("Refresh chunk {}:{:?}", nb, chunk);
+            debug!("Refresh chunk no {}: {:?}", nb, chunk);
             if let Err(e) = self.ix_refresh_price_list(chunk.to_vec()) {
                 error!("Refresh of some prices failed {:?}", e);
             }
@@ -368,7 +368,7 @@ impl ScopeClient {
     }
 
     #[tracing::instrument(skip(self))]
-    fn ix_refresh_price_list(&self, tokens: Vec<u8>) -> Result<()> {
+    fn ix_refresh_price_list(&self, tokens: Vec<u16>) -> Result<()> {
         if self.oracle_mappings_acc == Pubkey::default() {
             bail!("Program is not initialized");
         }

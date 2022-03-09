@@ -66,10 +66,11 @@ const PRICE_FEED = "crank_test_feed"
 
 function getRevisedIndex(token: number): number {
     // Create a bit of spread in the mapping to make bot's life harder
-    if (token < 4) {
+    if (token < (tokenList.length / 2)) {
         return token;
     } else {
-        return token + 8;
+        // Put last tokens at the end
+        return global.MAX_NB_TOKENS - token - 1;
     }
 }
 

@@ -35,7 +35,7 @@ mod scope {
         handler_refresh_prices::refresh_batch_prices(ctx, first_token)
     }
 
-    pub fn refresh_price_list(ctx: Context<RefreshList>, tokens: Vec<u8>) -> Result<()> {
+    pub fn refresh_price_list(ctx: Context<RefreshList>, tokens: Vec<u16>) -> Result<()> {
         handler_refresh_prices::refresh_price_list(ctx, &tokens)
     }
 

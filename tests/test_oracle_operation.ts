@@ -61,7 +61,7 @@ const initialTokens = [
 ]
 
 const PRICE_FEED = "oracle_test_feed"
-const MAX_TOKENS_IN_ONE_UPDATE = 28;
+const MAX_NB_TOKENS_IN_ONE_UPDATE = 27;
 
 function checkOraclePrice(token: number, oraclePrices: any) {
     console.log(`Check ${initialTokens[token].ticker} price`)
@@ -148,7 +148,7 @@ describe("Scope tests", () => {
             return oracleAddress;
         }));
 
-        const range = Array.from(Array(MAX_TOKENS_IN_ONE_UPDATE).keys());
+        const range = Array.from(Array(MAX_NB_TOKENS_IN_ONE_UPDATE).keys());
         fakePythAccounts2 = await Promise.all(range.map(async (idx): Promise<any> => {
             // Just create random accounts to fill-up the prices
             const oracleAddress = await pythUtils.createPriceFeed({
@@ -200,7 +200,7 @@ describe("Scope tests", () => {
 
     it('test_update_price_list', async () => {
         await program.rpc.refreshPriceList(
-            Buffer.from([Tokens.ETH, Tokens.RAY]),
+            Uint16Array.from([Tokens.ETH, Tokens.RAY]),
             {
                 accounts: {
                     oraclePrices: oracleAccount,
@@ -255,10 +255,11 @@ describe("Scope tests", () => {
 
     it('test_set_full_oracle_mappings', async () => {
 
+        // In this test set the tokens from the end of the mapping for limit testing
         await Promise.all(fakePythAccounts2.map(async (fakePythAccount, idx): Promise<any> => {
 
             await program.rpc.updateMapping(
-                new BN(idx + initialTokens.length),
+                new BN(global.MAX_NB_TOKENS - idx - 1),
                 {
                     accounts: {
                         admin: admin.publicKey,
@@ -276,13 +277,13 @@ describe("Scope tests", () => {
         // Use the 30 first token from the second pyth accounts list
         let tokens: number[] = [];
         let accounts: any[] = [];
-        for (let i = 0; i < MAX_TOKENS_IN_ONE_UPDATE; i++) {
-            tokens.push(i + initialTokens.length);
+        for (let i = 0; i < MAX_NB_TOKENS_IN_ONE_UPDATE; i++) {
+            tokens.push(global.MAX_NB_TOKENS - i - 1);
             accounts.push({ pubkey: fakePythAccounts2[i], isWritable: false, isSigner: false })
 
         }
         await program.rpc.refreshPriceList(
-            Buffer.from(tokens),
+            Uint16Array.from(tokens),
             {
                 accounts: {
                     oraclePrices: oracleAccount,
