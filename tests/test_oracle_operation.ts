@@ -1,5 +1,5 @@
 require('dotenv').config();
-import { Keypair, PublicKey, SystemProgram, SYSVAR_CLOCK_PUBKEY, Connection, ConnectionConfig } from '@solana/web3.js';
+import { Keypair, PublicKey, SystemProgram, SYSVAR_CLOCK_PUBKEY, Connection, ConnectionConfig, SYSVAR_RENT_PUBKEY } from '@solana/web3.js';
 import { Provider, Program, setProvider, BN } from "@project-serum/anchor"
 import NodeWallet from '@project-serum/anchor/dist/cjs/nodewallet';
 import * as pythUtils from './pyth_utils';
@@ -60,7 +60,8 @@ const initialTokens = [
     }
 ]
 
-const MAX_TOKENS_IN_ONE_UPDATE = 28;
+const PRICE_FEED = "oracle_test_feed"
+const MAX_NB_TOKENS_IN_ONE_UPDATE = 27;
 
 function checkOraclePrice(token: number, oraclePrices: any) {
     console.log(`Check ${initialTokens[token].ticker} price`)
@@ -93,35 +94,44 @@ describe("Scope tests", () => {
     let fakePythAccounts2: Array<PublicKey>; // Used to overflow oracle capacity
 
     let programDataAddress: PublicKey;
+    let confAccount: PublicKey;
     let oracleAccount: PublicKey;
     let oracleMappingAccount: PublicKey;
 
     before("Initialize Scope and pyth prices", async () => {
 
         programDataAddress = await global.getProgramDataAddress(program.programId);
-        oracleAccount = (await PublicKey.findProgramAddress(
-            [Buffer.from("prices", 'utf8'), Buffer.from("first_list", 'utf8')],
+        confAccount = (await PublicKey.findProgramAddress(
+            [Buffer.from("conf", 'utf8'), Buffer.from(PRICE_FEED, 'utf8')],
             program.programId
         ))[0];
-        oracleMappingAccount = (await PublicKey.findProgramAddress(
-            [Buffer.from("mappings", 'utf8'), Buffer.from("first_list", 'utf8')],
-            program.programId
-        ))[0];
+
+        let oracleAccount_kp = Keypair.generate();
+        let oracleMappingAccount_kp = Keypair.generate();
+
+        oracleAccount = oracleAccount_kp.publicKey;
+        oracleMappingAccount = oracleMappingAccount_kp.publicKey;
 
         console.log(`program data address is ${programDataAddress.toBase58()}`);
 
         await program.rpc.initialize(
-            "first_list",
+            PRICE_FEED,
             {
                 accounts: {
                     admin: admin.publicKey,
                     program: program.programId,
                     programData: programDataAddress,
                     systemProgram: SystemProgram.programId,
+                    configuration: confAccount,
                     oraclePrices: oracleAccount,
                     oracleMappings: oracleMappingAccount,
+                    rent: SYSVAR_RENT_PUBKEY,
                 },
-                signers: [admin]
+                signers: [admin, oracleAccount_kp, oracleMappingAccount_kp],
+                instructions: [
+                    await program.account.oraclePrices.createInstruction(oracleAccount_kp),
+                    await program.account.oracleMappings.createInstruction(oracleMappingAccount_kp),
+                ],
             });
 
         console.log('Initialize Tokens pyth prices and oracle mappings');
@@ -138,7 +148,7 @@ describe("Scope tests", () => {
             return oracleAddress;
         }));
 
-        const range = Array.from(Array(MAX_TOKENS_IN_ONE_UPDATE).keys());
+        const range = Array.from(Array(MAX_NB_TOKENS_IN_ONE_UPDATE).keys());
         fakePythAccounts2 = await Promise.all(range.map(async (idx): Promise<any> => {
             // Just create random accounts to fill-up the prices
             const oracleAddress = await pythUtils.createPriceFeed({
@@ -190,7 +200,7 @@ describe("Scope tests", () => {
 
     it('test_update_price_list', async () => {
         await program.rpc.refreshPriceList(
-            Buffer.from([Tokens.ETH, Tokens.RAY]),
+            Uint16Array.from([Tokens.ETH, Tokens.RAY]),
             {
                 accounts: {
                     oraclePrices: oracleAccount,
@@ -245,10 +255,11 @@ describe("Scope tests", () => {
 
     it('test_set_full_oracle_mappings', async () => {
 
+        // In this test set the tokens from the end of the mapping for limit testing
         await Promise.all(fakePythAccounts2.map(async (fakePythAccount, idx): Promise<any> => {
 
             await program.rpc.updateMapping(
-                new BN(idx + initialTokens.length),
+                new BN(global.MAX_NB_TOKENS - idx - 1),
                 {
                     accounts: {
                         admin: admin.publicKey,
@@ -266,13 +277,13 @@ describe("Scope tests", () => {
         // Use the 30 first token from the second pyth accounts list
         let tokens: number[] = [];
         let accounts: any[] = [];
-        for (let i = 0; i < MAX_TOKENS_IN_ONE_UPDATE; i++) {
-            tokens.push(i + initialTokens.length);
+        for (let i = 0; i < MAX_NB_TOKENS_IN_ONE_UPDATE; i++) {
+            tokens.push(global.MAX_NB_TOKENS - i - 1);
             accounts.push({ pubkey: fakePythAccounts2[i], isWritable: false, isSigner: false })
 
         }
         await program.rpc.refreshPriceList(
-            Buffer.from(tokens),
+            Uint16Array.from(tokens),
             {
                 accounts: {
                     oraclePrices: oracleAccount,

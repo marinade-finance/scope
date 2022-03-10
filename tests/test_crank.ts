@@ -1,5 +1,5 @@
 require('dotenv').config();
-import { Keypair, PublicKey, SystemProgram, SYSVAR_CLOCK_PUBKEY, Connection, ConnectionConfig } from '@solana/web3.js';
+import { Keypair, PublicKey, SystemProgram, SYSVAR_CLOCK_PUBKEY, Connection, ConnectionConfig, SYSVAR_RENT_PUBKEY } from '@solana/web3.js';
 import { Provider, Program, setProvider, BN } from "@project-serum/anchor"
 import { sleep } from '@project-serum/common';
 import NodeWallet from '@project-serum/anchor/dist/cjs/nodewallet';
@@ -62,12 +62,15 @@ let tokenList = [
     }
 ]
 
+const PRICE_FEED = "crank_test_feed"
+
 function getRevisedIndex(token: number): number {
     // Create a bit of spread in the mapping to make bot's life harder
-    if (token < 4) {
+    if (token < (tokenList.length / 2)) {
         return token;
     } else {
-        return token + 8;
+        // Put last tokens at the end
+        return global.MAX_NB_TOKENS - token - 1;
     }
 }
 
@@ -104,6 +107,7 @@ describe("Scope crank bot tests", () => {
     let fakePythAccounts: Array<PublicKey>;
 
     let programDataAddress: PublicKey;
+    let confAccount: PublicKey;
     let oracleAccount: PublicKey;
     let oracleMappingAccount: PublicKey;
 
@@ -132,29 +136,37 @@ describe("Scope crank bot tests", () => {
 
     before("Initialize Scope and pyth prices", async () => {
         programDataAddress = await global.getProgramDataAddress(program.programId);
-        oracleAccount = (await PublicKey.findProgramAddress(
-            [Buffer.from("prices", 'utf8'), Buffer.from("crank_list", 'utf8')],
+        confAccount = (await PublicKey.findProgramAddress(
+            [Buffer.from("conf", 'utf8'), Buffer.from(PRICE_FEED, 'utf8')],
             program.programId
         ))[0];
-        oracleMappingAccount = (await PublicKey.findProgramAddress(
-            [Buffer.from("mappings", 'utf8'), Buffer.from("crank_list", 'utf8')],
-            program.programId
-        ))[0];
+
+        let oracleAccount_kp = Keypair.generate();
+        let oracleMappingAccount_kp = Keypair.generate();
+
+        oracleAccount = oracleAccount_kp.publicKey;
+        oracleMappingAccount = oracleMappingAccount_kp.publicKey;
 
         console.log(`program data address is ${programDataAddress.toBase58()}`);
 
         await program.rpc.initialize(
-            "crank_list",
+            PRICE_FEED,
             {
                 accounts: {
                     admin: admin.publicKey,
                     program: program.programId,
                     programData: programDataAddress,
                     systemProgram: SystemProgram.programId,
+                    configuration: confAccount,
                     oraclePrices: oracleAccount,
                     oracleMappings: oracleMappingAccount,
+                    rent: SYSVAR_RENT_PUBKEY,
                 },
-                signers: [admin]
+                signers: [admin, oracleAccount_kp, oracleMappingAccount_kp],
+                instructions: [
+                    await program.account.oraclePrices.createInstruction(oracleAccount_kp),
+                    await program.account.oracleMappings.createInstruction(oracleMappingAccount_kp),
+                ],
             });
 
         console.log('Initialize Tokens pyth prices and oracle mappings');
@@ -195,7 +207,7 @@ describe("Scope crank bot tests", () => {
     // - bad accounts (after PDAs removal)
 
     it('test_one_price_change', async () => {
-        scopeBot = new bot.ScopeBot(program.programId, keypair_path, "crank_list");
+        scopeBot = new bot.ScopeBot(program.programId, keypair_path, PRICE_FEED);
         await scopeBot.crank();
         // TODO does not work because not "confirmed" commitment?
         // await scopeBot.nextLogMatches((c) => c.includes('Prices refreshed successfully'), 10000);
@@ -207,7 +219,7 @@ describe("Scope crank bot tests", () => {
     });
 
     it('test_5_loop_price_changes', async () => {
-        scopeBot = new bot.ScopeBot(program.programId, keypair_path, "crank_list");
+        scopeBot = new bot.ScopeBot(program.programId, keypair_path, PRICE_FEED);
         await scopeBot.crank();
         for (let i = 0; i < 5; i++) {
             // increase all prices at each loop

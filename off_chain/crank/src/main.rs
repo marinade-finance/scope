@@ -58,11 +58,11 @@ enum Actions {
     },
     /// Initialize the program accounts
     /// This requires initial program deploy account and enough funds
-    #[clap(arg_required_else_help = true)]
+    #[clap()]
     Init {
         /// Where is stored the mapping to use
         #[clap(long, env, parse(from_os_str))]
-        mapping: PathBuf,
+        mapping: Option<PathBuf>,
     },
 
     /// Automatically refresh the prices
@@ -94,23 +94,38 @@ fn main() -> Result<()> {
 
     let client = Client::new_with_options(args.cluster, Rc::new(payer), commitment);
 
-    let mut scope = ScopeClient::new(client, args.program_id, args.price_feed)?;
+    if let Actions::Init { mapping } = args.action {
+        init(&client, &args.program_id, &args.price_feed, &mapping)
+    } else {
+        let mut scope = ScopeClient::new(client, args.program_id, &args.price_feed)?;
 
-    match args.action {
-        Actions::Download { mapping } => download(&mut scope, &mapping),
-        Actions::Upload { mapping } => upload(&mut scope, &mapping),
-        Actions::Init { mapping } => init(&mut scope, &mapping),
-        Actions::Crank {
-            refresh_interval_ms,
-            mapping,
-        } => crank(&mut scope, (&mapping).as_ref(), refresh_interval_ms),
+        match args.action {
+            Actions::Download { mapping } => download(&mut scope, &mapping),
+            Actions::Upload { mapping } => upload(&mut scope, &mapping),
+            Actions::Init { .. } => unreachable!(),
+            Actions::Crank {
+                refresh_interval_ms,
+                mapping,
+            } => crank(&mut scope, (&mapping).as_ref(), refresh_interval_ms),
+        }
     }
 }
 
-fn init(scope: &mut ScopeClient, mapping: &impl AsRef<Path>) -> Result<()> {
-    let token_list = TokenConfList::read_from_file(&mapping)?;
-    scope.set_local_mapping(&token_list)?;
-    scope.init_program()
+fn init(
+    client: &Client,
+    program_id: &Pubkey,
+    price_feed: &str,
+    mapping_op: &Option<impl AsRef<Path>>,
+) -> Result<()> {
+    let mut scope = ScopeClient::new_init_program(client, program_id, price_feed)?;
+
+    if let Some(mapping) = mapping_op {
+        let token_list = TokenConfList::read_from_file(&mapping)?;
+        scope.set_local_mapping(&token_list)?;
+        scope.upload_oracle_mapping()?;
+    }
+
+    Ok(())
 }
 
 fn upload(scope: &mut ScopeClient, mapping: &impl AsRef<Path>) -> Result<()> {

@@ -4,14 +4,15 @@
 
 Step 1:
 - [x] Minimum tests for the bot
-- [ ] Increase amount of prices to 512
-- [ ] Find refresh size limit and use it in bot
+- [x] Increase amount of prices to 512
+- [x] Find refresh size limit and use it in bot
 - [ ] Look into bot logs
 
 Step 2:
 - [ ] deploy on devnet
 
 Step 3:
+- [ ] Strategy to have multiple bots running : Detect state stall with different time threshold. Each bot start when stall is detected + return to sleep based on monitor of contract interractions?
 - [ ] Tests for security checks
 - [ ] Connect to hubble (price diff)
 
@@ -25,6 +26,3 @@ Low prio:
 - [ ] Update to last pyth version
 - [ ] Crank only when price change
 - [ ] Autorefresh of mapping in crank mode?
-
-To discuss:
-- [ ] Strategy to have multiple bots running : Proposal: detect stall with different time threshold. Each bot start when stall is detected + return to sleep based on monitor of contract interractions?
