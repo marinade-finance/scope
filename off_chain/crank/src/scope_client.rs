@@ -41,8 +41,9 @@ impl ScopeClient {
         let (configuration_acc, _) =
             Pubkey::find_program_address(&[b"conf", price_feed.as_bytes()], &program_id);
 
-        let Configuration {oracle_mappings_pbk, oracle_prices_pbk, ..}= program
-            .account::<Configuration>(configuration_acc).context("Error while retrieving program configuration account, the program might be uninitialized")?;
+        let Configuration { oracle_mappings_pbk, oracle_prices_pbk, .. } = program
+            .account::<Configuration>(configuration_acc)
+            .context("Error while retrieving program configuration account, the program might be uninitialized")?;
 
         Ok(Self {
             program,
