@@ -12,7 +12,7 @@ use std::time::{Duration, Instant};
 
 use clap::{Parser, Subcommand};
 
-use tracing::{error, info, trace, warn};
+use tracing::{debug, error, info, trace, warn};
 
 use anyhow::Result;
 
@@ -69,8 +69,8 @@ enum Actions {
     /// Automatically refresh the prices
     #[clap()]
     Crank {
-        #[clap(long, env, default_value = "1000")]
-        refresh_interval_ms: u64,
+        #[clap(long, env, default_value = "5")]
+        refresh_interval_slot: clock::Slot,
         /// Where to store the mapping
         #[clap(long, env, parse(from_os_str))]
         mapping: Option<PathBuf>,
@@ -88,9 +88,9 @@ fn main() -> Result<()> {
 
     let commitment = if let Actions::Crank { .. } = args.action {
         // For crank we don't want to wait for proper confirmation of the refresh transaction
-        CommitmentConfig::processed()
-    } else {
         CommitmentConfig::confirmed()
+    } else {
+        CommitmentConfig::finalized()
     };
 
     let client = Client::new_with_options(args.cluster, Rc::new(payer), commitment);
@@ -105,9 +105,9 @@ fn main() -> Result<()> {
             Actions::Upload { mapping } => upload(&mut scope, &mapping),
             Actions::Init { .. } => unreachable!(),
             Actions::Crank {
-                refresh_interval_ms,
+                refresh_interval_slot,
                 mapping,
-            } => crank(&mut scope, (&mapping).as_ref(), refresh_interval_ms),
+            } => crank(&mut scope, (&mapping).as_ref(), refresh_interval_slot),
         }
     }
 }
@@ -144,8 +144,10 @@ fn download(scope: &mut ScopeClient, mapping: &impl AsRef<Path>) -> Result<()> {
 fn crank(
     scope: &mut ScopeClient,
     mapping_op: Option<impl AsRef<Path>>,
-    refresh_interval_ms: u64,
+    refresh_interval_slot: clock::Slot,
 ) -> Result<()> {
+    info!("Refresh interval set to {:?} slots", refresh_interval_slot);
+
     if let Some(mapping) = mapping_op {
         let token_list = TokenConfList::read_from_file(&mapping)?;
         scope.set_local_mapping(&token_list)?;
@@ -153,21 +155,24 @@ fn crank(
     } else {
         scope.download_oracle_mapping()?;
     }
-    // Will refresh price if older than this number of slot
-    let refresh_interval_slot = refresh_interval_ms / clock::DEFAULT_MS_PER_SLOT;
-    info!("Refresh interval set to {}", refresh_interval_ms);
     loop {
         let start = Instant::now();
+
         if let Err(e) = scope.refresh_prices_older_than(refresh_interval_slot) {
             error!("Error while refreshing prices {:?}", e);
         }
+
         let elapsed = start.elapsed();
         trace!("last refresh duration was {:?}", elapsed);
+
         let oldest_age = scope.get_oldest_price_age()?;
+        trace!(oldest_age);
+
         if refresh_interval_slot > oldest_age {
             let sleep_ms = (refresh_interval_slot - oldest_age) * clock::DEFAULT_MS_PER_SLOT;
             sleep(Duration::from_millis(sleep_ms));
         } else {
+            warn!("No sleep, some prices are already too old");
         }
     }
 

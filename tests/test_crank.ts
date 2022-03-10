@@ -209,9 +209,10 @@ describe("Scope crank bot tests", () => {
     it('test_one_price_change', async () => {
         scopeBot = new bot.ScopeBot(program.programId, keypair_path, PRICE_FEED);
         await scopeBot.crank();
-        // TODO does not work because not "confirmed" commitment?
-        // await scopeBot.nextLogMatches((c) => c.includes('Prices refreshed successfully'), 10000);
-        await sleep(2000);
+
+        await scopeBot.nextLogMatches((c) => c.includes('Prices refreshed successfully'), 10000);
+        await sleep(500);// One block await
+
         {
             let oracle = await program.account.oraclePrices.fetch(oracleAccount);
             checkAllOraclePrices(oracle);
@@ -227,7 +228,10 @@ describe("Scope crank bot tests", () => {
                 asset.price = asset.price.add(new Decimal('0.500'));
             }
             await setAllPythPrices();
-            await sleep(2000);//Should wait less?
+
+            await scopeBot.nextLogMatches((c) => c.includes('Prices refreshed successfully'), 10000);
+            await sleep(500);// One block await
+
             let oracle = await program.account.oraclePrices.fetch(oracleAccount);
             checkAllOraclePrices(oracle);
         }

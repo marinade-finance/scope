@@ -214,6 +214,7 @@ impl ScopeClient {
             .deserialize_data()?;
 
         let current_slot = clock.slot;
+        trace!(current_slot);
 
         for (nb, chunk) in prices.chunks(MAX_REFRESH_CHUNK_SIZE).enumerate() {
             trace!("Evaluate age of chunk {}:{:?}", nb, chunk);
@@ -244,13 +245,15 @@ impl ScopeClient {
     pub fn get_oldest_price_age(&self) -> Result<clock::Slot> {
         let oracle_prices = self.get_prices()?;
 
-        let oldest_slot = oracle_prices
+        let oldest_price_slot = oracle_prices
             .prices
             .iter()
             .zip(self.oracle_mappings) // Iterate with mappings to ensure the price is usable
             .filter_map(|(dp, mapping_op)| mapping_op.map(|_| dp.last_updated_slot))
             .min()
             .unwrap_or(0);
+
+        trace!(oldest_price_slot);
 
         let clock: Clock = self
             .program
@@ -263,7 +266,7 @@ impl ScopeClient {
 
         let age = clock
             .slot
-            .checked_sub(oldest_slot)
+            .checked_sub(oldest_price_slot)
             .ok_or(anyhow!("Some prices have been updated in the future"))?;
 
         Ok(age)

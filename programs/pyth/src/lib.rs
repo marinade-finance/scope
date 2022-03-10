@@ -27,12 +27,21 @@ pub mod pyth {
         price_oracle.num_qt = 3;
         price_oracle.magic = 0xa1b2c3d4;
         price_oracle.ver = 2;
+
+        let slot = ctx.accounts.clock.slot;
+        price_oracle.valid_slot = slot;
+
         Ok(())
     }
     pub fn set_price(ctx: Context<SetPrice>, price: i64) -> ProgramResult {
         let oracle = &ctx.accounts.price;
+
         let mut price_oracle = Price::load(oracle).unwrap();
         price_oracle.agg.price = price;
+
+        let slot = ctx.accounts.clock.slot;
+        price_oracle.valid_slot = slot;
+        msg!("Price {} updated to {} at slot {}", oracle.key, price, slot);
         Ok(())
     }
     pub fn set_trading(ctx: Context<SetPrice>, status: u8) -> ProgramResult {
@@ -70,10 +79,12 @@ pub struct SetPrice<'info> {
     /// CHECK: Not safe but this is a test tool
     #[account(mut)]
     pub price: AccountInfo<'info>,
+    pub clock: Sysvar<'info, Clock>,
 }
 #[derive(Accounts)]
 pub struct Initialize<'info> {
     /// CHECK: Not safe but this is a test tool
     #[account(mut)]
     pub price: AccountInfo<'info>,
+    pub clock: Sysvar<'info, Clock>,
 }

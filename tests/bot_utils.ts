@@ -13,7 +13,7 @@ import chaiDecimalJs from 'chai-decimaljs';
 
 chai.use(chaiDecimalJs(Decimal));
 
-const exe_file = './target/release/scope';
+const exe_file = './target/debug/scope';
 
 export interface ScopeBot {
     programId: PublicKey;
@@ -57,6 +57,10 @@ export class ScopeBot {
         ]
     }
 
+    env() {
+        return Object.assign({}, process.env, { RUST_LOG: 'info,scope=trace,scope_client=trace' });
+    }
+
     async init(mappingPath: string) {
         let args = [
             ...this.base_args(),
@@ -65,7 +69,9 @@ export class ScopeBot {
             mappingPath,
         ];
 
-        this.childProcess = execFile(exe_file, args, (err) => {
+        let env = this.env();
+
+        this.childProcess = execFile(exe_file, args, { env: env }, (err) => {
             // ignore errors arising from our sigkill
             if (err && err.signal != 'SIGKILL') {
                 console.error(err);
@@ -102,7 +108,9 @@ export class ScopeBot {
             mappingPath
         ];
 
-        this.childProcess = execFile(exe_file, args, (err) => {
+        let env = this.env();
+
+        this.childProcess = execFile(exe_file, args, { env: env }, (err) => {
             // ignore errors arising from our sigkill
             if (err && err.signal != 'SIGKILL') {
                 console.error(err);
@@ -138,7 +146,9 @@ export class ScopeBot {
             // TODO: allow to test with local mapping
         ];
 
-        this.childProcess = execFile(exe_file, args, (err) => {
+        let env = this.env();
+
+        this.childProcess = execFile(exe_file, args, { env: env }, (err) => {
             // ignore errors arising from our sigkill
             if (err && err.signal != 'SIGKILL') {
                 console.error(err);
@@ -169,7 +179,7 @@ export class ScopeBot {
         // now lets wait until we get our started chunk
         // to ensure we are all up and running
         const chunkReady = await this.nextLog(10000);
-        assert(chunkReady.includes('Refresh interval set to 1s'), 'first chunk should give information on refresh interval');
+        assert(chunkReady.includes('Refresh interval set to'), 'first chunk should give information on refresh interval');
     }
 
     stop() {

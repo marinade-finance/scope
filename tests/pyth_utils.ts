@@ -1,5 +1,6 @@
 import { BN, Program, web3 } from '@project-serum/anchor'
 import { parsePriceData } from '@pythnetwork/client'
+import { SYSVAR_CLOCK_PUBKEY } from '@solana/web3.js'
 import Decimal from 'decimal.js'
 
 export enum PriceStatus {
@@ -29,7 +30,7 @@ export const createPriceFeed = async ({
         expo,
         conf,
         {
-            accounts: { price: collateralTokenFeed.publicKey },
+            accounts: { price: collateralTokenFeed.publicKey, clock: SYSVAR_CLOCK_PUBKEY },
             signers: [collateralTokenFeed],
             instructions: [
                 web3.SystemProgram.createAccount({
@@ -54,7 +55,7 @@ export const setFeedPrice = async (
     const data = parsePriceData(info.data)
     const newPriceBn = new BN(newPrice.mul(new Decimal(10).pow(new Decimal(-data.exponent))).toNumber());
     await oracleProgram.rpc.setPrice(newPriceBn, {
-        accounts: { price: priceFeed }
+        accounts: { price: priceFeed, clock: SYSVAR_CLOCK_PUBKEY }
     })
 }
 export const setFeedTrading = async (
