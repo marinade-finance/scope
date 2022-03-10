@@ -3,7 +3,6 @@ use std::mem::size_of;
 use anchor_client::{Client, Program};
 
 use solana_sdk::clock;
-use solana_sdk::sysvar::Sysvar;
 use solana_sdk::{
     clock::Clock, instruction::AccountMeta, pubkey::Pubkey, signature::Keypair, signer::Signer,
     system_instruction, system_program, sysvar::SysvarId,
@@ -260,9 +259,6 @@ impl ScopeClient {
             .rpc()
             .get_account(&Clock::id())?
             .deserialize_data()?;
-
-        //TODO: simpler ? but not working...
-        //let age = Clock::get()?.slot;
 
         let age = clock
             .slot

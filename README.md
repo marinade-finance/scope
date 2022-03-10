@@ -12,7 +12,7 @@ Step 2:
 - [ ] deploy on devnet
 
 Step 3:
-- [ ] Strategy to have multiple bots running : Detect state stall with different time threshold. Each bot start when stall is detected + return to sleep based on monitor of contract interractions?
+- [x] Strategy to have multiple bots running : Detect state stall with different time threshold. Each bot start when stall is detected + return to sleep based on monitor of contract interractions?
 - [ ] Tests for security checks
 - [ ] Connect to hubble (price diff)
 

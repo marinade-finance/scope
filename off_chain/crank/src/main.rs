@@ -12,7 +12,7 @@ use std::time::{Duration, Instant};
 
 use clap::{Parser, Subcommand};
 
-use tracing::{debug, error, info, trace, warn};
+use tracing::{error, info, trace, warn};
 
 use anyhow::Result;
 

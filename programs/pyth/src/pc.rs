@@ -116,12 +116,10 @@ pub struct Price {
 impl Price {
     #[inline]
     pub fn load<'a>(price_feed: &'a AccountInfo) -> Result<RefMut<'a, Price>, ProgramError> {
-        let account_data: RefMut<'a, [u8]>;
-        let state: RefMut<'a, Self>;
+        let account_data: RefMut<'a, [u8]> =
+            RefMut::map(price_feed.try_borrow_mut_data().unwrap(), |data| *data);
 
-        account_data = RefMut::map(price_feed.try_borrow_mut_data().unwrap(), |data| *data);
-
-        state = RefMut::map(account_data, |data| {
+        let state: RefMut<'a, Self> = RefMut::map(account_data, |data| {
             from_bytes_mut(cast_slice_mut::<u8, u8>(try_cast_slice_mut(data).unwrap()))
         });
         Ok(state)
