@@ -35,6 +35,10 @@ struct Args {
     #[clap(long, env)]
     price_feed: String,
 
+    /// Set flag to activate json log output
+    #[clap(long, env)]
+    json: bool,
+
     /// Subcommand to execute
     #[clap(subcommand)]
     action: Actions,
@@ -80,9 +84,11 @@ enum Actions {
 fn main() -> Result<()> {
     let args: Args = Args::parse();
 
-    // TODO output JSON?
-    tracing_subscriber::fmt::init();
-
+    if args.json {
+        tracing_subscriber::fmt().json().init();
+    } else {
+        tracing_subscriber::fmt::init();
+    }
     // Read keypair to sign transactions
     let payer = read_keypair_file(args.keypair).expect("Keypair file not found or invalid");
 
