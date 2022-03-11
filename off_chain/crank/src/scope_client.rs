@@ -177,7 +177,7 @@ impl ScopeClient {
             .collect();
 
         for (nb, chunk) in to_refresh_idx.chunks(MAX_REFRESH_CHUNK_SIZE).enumerate() {
-            let _span = span!(Level::TRACE, "Refresh chunk", "chunk.nb" = %nb, ?chunk).entered();
+            let _span = span!(Level::TRACE, "refresh_chunk", "chunk.nb" = %nb, ?chunk).entered();
             if let Err(e) = self.ix_refresh_price_list(chunk.to_vec()) {
                 event!(Level::ERROR, "err" = ?e, "Refresh of some prices failed");
             }
@@ -216,7 +216,7 @@ impl ScopeClient {
         trace!(current_slot);
 
         for (nb, chunk) in prices.chunks(MAX_REFRESH_CHUNK_SIZE).enumerate() {
-            let _span = span!(Level::TRACE, "Evaluate chunk", "chunk.nb" = %nb, ?chunk).entered();
+            let _span = span!(Level::TRACE, "evaluate_chunk", "chunk.nb" = %nb, ?chunk).entered();
             let price_slot = chunk[0].1;
             let age = current_slot
                 .checked_sub(price_slot)
