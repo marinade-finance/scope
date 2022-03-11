@@ -11,7 +11,7 @@ use solana_sdk::{
 use anyhow::{anyhow, bail, Context, Result};
 
 use scope::{accounts, instruction, Configuration, OracleMappings, OraclePrices};
-use tracing::{debug, error, info, trace, warn};
+use tracing::{debug, error, event, info, span, trace, warn, Level};
 
 use crate::config::{TokenConf, TokenConfList};
 use crate::utils::find_data_address;
@@ -177,9 +177,9 @@ impl ScopeClient {
             .collect();
 
         for (nb, chunk) in to_refresh_idx.chunks(MAX_REFRESH_CHUNK_SIZE).enumerate() {
-            debug!("Refresh chunk no {}: {:?}", nb, chunk);
+            let _span = span!(Level::TRACE, "Refresh chunk", "chunk.nb" = %nb, ?chunk).entered();
             if let Err(e) = self.ix_refresh_price_list(chunk.to_vec()) {
-                error!("Refresh of some prices failed {:?}", e);
+                event!(Level::ERROR, "err" = ?e, "Refresh of some prices failed");
             }
         }
 
@@ -216,7 +216,7 @@ impl ScopeClient {
         trace!(current_slot);
 
         for (nb, chunk) in prices.chunks(MAX_REFRESH_CHUNK_SIZE).enumerate() {
-            trace!("Evaluate age of chunk {}:{:?}", nb, chunk);
+            let _span = span!(Level::TRACE, "Evaluate chunk", "chunk.nb" = %nb, ?chunk).entered();
             let price_slot = chunk[0].1;
             let age = current_slot
                 .checked_sub(price_slot)
@@ -229,10 +229,10 @@ impl ScopeClient {
                     .collect();
                 debug!("Refresh chunk: {:?}", price_ids);
                 if let Err(e) = self.ix_refresh_price_list(price_ids) {
-                    error!("Refresh of some prices failed {:?}", e);
+                    event!(Level::ERROR, "err" = ?e, "Refresh of some prices failed");
                 }
             } else {
-                trace!("Chunk {} is too recent, stop", nb);
+                trace!("Chunk is too recent, stop");
                 break;
             }
         }
@@ -445,17 +445,17 @@ impl ScopeClient {
                 // TODO: Inefficient, we could remove the token from the list but this should not happen anyway in the program
                 request = request.accounts(AccountMeta::new_readonly(Pubkey::default(), false));
                 warn!(
-                    "Refresh price of token {} which has an undefined oracle mapping.",
-                    token_idx
+                    token_idx,
+                    "Refresh price of a token which has an undefined oracle mapping."
                 )
             }
         }
 
-        request
+        let tx = request
             .args(instruction::RefreshPriceList { tokens })
             .send()?;
 
-        info!("Prices refreshed successfully");
+        info!(signature = %tx, "Prices refreshed successfully");
 
         Ok(())
     }
