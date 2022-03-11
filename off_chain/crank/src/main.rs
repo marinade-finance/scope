@@ -85,11 +85,7 @@ fn main() -> Result<()> {
     let args: Args = Args::parse();
 
     if args.json {
-        tracing_subscriber::fmt()
-            .json()
-            .with_max_level(tracing::Level::TRACE)
-            .with_current_span(false)
-            .init();
+        tracing_subscriber::fmt().json().init();
     } else {
         tracing_subscriber::fmt::init();
     }
