@@ -2,6 +2,7 @@ use std::mem::size_of;
 
 use anchor_client::{Client, Program};
 
+use solana_sdk::clock;
 use solana_sdk::{
     clock::Clock, instruction::AccountMeta, pubkey::Pubkey, signature::Keypair, signer::Signer,
     system_instruction, system_program, sysvar::SysvarId,
@@ -10,7 +11,7 @@ use solana_sdk::{
 use anyhow::{anyhow, bail, Context, Result};
 
 use scope::{accounts, instruction, Configuration, OracleMappings, OraclePrices};
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, info, trace, warn};
 
 use crate::config::{TokenConf, TokenConfList};
 use crate::utils::find_data_address;
@@ -183,6 +184,88 @@ impl ScopeClient {
         }
 
         Ok(())
+    }
+
+    /// Refresh all prices older than given number of slots
+    ///
+    /// As an optimization for number of tx. The prices are divided in chunk by age.
+    /// If one token is too old at least `MAX_REFRESH_CHUNK_SIZE` tokens will be
+    /// refreshed.
+    #[tracing::instrument(skip(self))]
+    pub fn refresh_prices_older_than(&self, max_age: clock::Slot) -> Result<()> {
+        let oracle_prices = self.get_prices()?;
+
+        let mut prices: Vec<_> = oracle_prices
+            .prices
+            .iter()
+            .zip(self.oracle_mappings) // Iterate with mappings to ensure the price is usable
+            .enumerate() // keep track of indexes, needed for refresh
+            .filter_map(|(idx, (dp, mapping_op))| mapping_op.map(|_| (idx, dp.last_updated_slot)))
+            .collect();
+
+        // Sort the prices from the oldest to the youngest.
+        prices.sort_by(|a, b| b.1.cmp(&a.1));
+
+        let clock: Clock = self
+            .program
+            .rpc()
+            .get_account(&Clock::id())?
+            .deserialize_data()?;
+
+        let current_slot = clock.slot;
+        trace!(current_slot);
+
+        for (nb, chunk) in prices.chunks(MAX_REFRESH_CHUNK_SIZE).enumerate() {
+            trace!("Evaluate age of chunk {}:{:?}", nb, chunk);
+            let price_slot = chunk[0].1;
+            let age = current_slot
+                .checked_sub(price_slot)
+                .ok_or(anyhow!("Some prices have been updated in the future"))?;
+
+            if age >= max_age {
+                let price_ids = chunk
+                    .iter()
+                    .map(|(idx, _)| u16::try_from(*idx).unwrap())
+                    .collect();
+                debug!("Refresh chunk: {:?}", price_ids);
+                if let Err(e) = self.ix_refresh_price_list(price_ids) {
+                    error!("Refresh of some prices failed {:?}", e);
+                }
+            } else {
+                trace!("Chunk {} is too recent, stop", nb);
+                break;
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Get age in slots of the oldest price
+    pub fn get_oldest_price_age(&self) -> Result<clock::Slot> {
+        let oracle_prices = self.get_prices()?;
+
+        let oldest_price_slot = oracle_prices
+            .prices
+            .iter()
+            .zip(self.oracle_mappings) // Iterate with mappings to ensure the price is usable
+            .filter_map(|(dp, mapping_op)| mapping_op.map(|_| dp.last_updated_slot))
+            .min()
+            .unwrap_or(0);
+
+        trace!(oldest_price_slot);
+
+        let clock: Clock = self
+            .program
+            .rpc()
+            .get_account(&Clock::id())?
+            .deserialize_data()?;
+
+        let age = clock
+            .slot
+            .checked_sub(oldest_price_slot)
+            .ok_or(anyhow!("Some prices have been updated in the future"))?;
+
+        Ok(age)
     }
 
     /// Get all prices
