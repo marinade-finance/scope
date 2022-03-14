@@ -204,7 +204,7 @@ impl ScopeClient {
             .collect();
 
         // Sort the prices from the oldest to the youngest.
-        prices.sort_by(|a, b| b.1.cmp(&a.1));
+        prices.sort_by(|a, b| a.1.cmp(&b.1));
 
         let clock: Clock = self
             .program
@@ -350,12 +350,18 @@ impl ScopeClient {
 
         let request = self.program.request();
 
-        request
+        let res = request
             .accounts(update_account)
             .args(instruction::UpdateMapping { token })
-            .send()?;
+            .send();
 
-        info!("Accounts updated successfully");
+        match res {
+            Ok(sig) => info!(signature = %sig, "Accounts updated successfully"),
+            Err(err) => {
+                error!(err = ?err, "Mapping update failed");
+                bail!(err);
+            }
+        }
 
         Ok(())
     }

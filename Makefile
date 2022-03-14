@@ -12,6 +12,19 @@ ifeq ($(origin .RECIPEPREFIX), undefined)
 endif
 .RECIPEPREFIX = >
 
+define DEPENDABLE_VAR
+
+.PHONY: phony
+$1: phony
+>@ if [[ `cat $1 2>&1` != '$($1)' ]]; then \
+     echo -n $($1) > $1 ; \
+   fi
+
+endef
+
+#declare CLUSTER to be dependable
+$(eval $(call DEPENDABLE_VAR,CLUSTER))
+
 # TODO: not sure if it really works
 ifneq (,$(wildcard ./.env))
 	include ./.env
@@ -19,18 +32,19 @@ endif
 
 CLUSTER ?= localnet
 OWNER_KEYPAIR ?= ./keys/$(CLUSTER)/owner.json
+FEED_NAME ?= hubble
 
 ifeq ($(CLUSTER),localnet)
-	URL = "http://127.0.0.1:8899"
+	URL ?= "http://127.0.0.1:8899"
 endif
 ifeq ($(CLUSTER),mainnet)
-	URL = "https://twilight-misty-snow.solana-mainnet.quiknode.pro/1080f1a8952de8e09d402f2ce877698f832faea8/"
+	URL ?= "https://solana-api.projectserum.com"
 endif
 ifeq ($(CLUSTER),mainnet-beta)
-	URL = "https://twilight-misty-snow.solana-mainnet.quiknode.pro/1080f1a8952de8e09d402f2ce877698f832faea8/"
+	URL ?= "https://api.mainnet-beta.solana.com"
 endif
 ifeq ($(CLUSTER),devnet)
-	URL = "https://wandering-restless-darkness.solana-devnet.quiknode.pro/8eca9fa5ccdf04e4a0f558cdd6420a6805038a1f/"
+	URL ?= "https://api.devnet.solana.com"
 endif
 ifeq ($(URL),)
 # URL is still empty, CLUSTER is probably set to an URL directly
@@ -49,7 +63,12 @@ SCOPE_PROGRAM_ID != solana-keygen pubkey $(SCOPE_PROGRAM_KEYPAIR)
 FAKE_PYTH_PROGRAM_ID != solana-keygen pubkey $(FAKE_PYTH_PROGRAM_KEYPAIR)
 PROGRAM_DEPLOY_ACCOUNT != solana-keygen pubkey $(OWNER_KEYPAIR)
 
-.PHONY: deploy build-client run listen deploy deploy-int airdrop test test-rust test-ts
+.PHONY: deploy run listen deploy deploy-int airdrop test test-rust test-ts init check-env
+
+check-env:
+>@ echo "CLUSTER=$(CLUSTER)" 
+>@ echo "URL=$(URL)" 
+>@ echo "FEED_NAME=$(FEED_NAME)"
 
 build: $(SCOPE_PROGRAM_SO) $(FAKE_PYTH_PROGRAM_SO) $(SCOPE_CLI)
 
@@ -63,22 +82,37 @@ keys/$(CLUSTER)/%.json:
 >@ solana-keygen new --no-bip39-passphrase -s -o $@
 
 # Rebuild the .so if any rust file change
-target/deploy/%.so: keys/$(CLUSTER)/%.json $(shell find programs -name "*.rs") $(shell find programs -name "Cargo.toml") Cargo.lock
+target/deploy/%.so: keys/$(CLUSTER)/%.json $(shell find programs -name "*.rs") $(shell find programs -name "Cargo.toml") Cargo.lock CLUSTER
 >@ echo "*******Build $* *******"
 >@ CLUSTER=$(CLUSTER) anchor build -p $*
 >@ cp -f keys/$(CLUSTER)/$*.json target/deploy/$*-keypair.json #< Optional but just to ensure deploys without the makefile behave correctly 
 
+deploy-scope:
+>@ PROGRAM_SO=$(SCOPE_PROGRAM_SO) PROGRAM_KEYPAIR=$(SCOPE_PROGRAM_KEYPAIR) $(MAKE) deploy-int
+
 deploy:
 >@ PROGRAM_SO=$(SCOPE_PROGRAM_SO) PROGRAM_KEYPAIR=$(SCOPE_PROGRAM_KEYPAIR) $(MAKE) deploy-int
->@ PROGRAM_SO=$(FAKE_PYTH_PROGRAM_SO) PROGRAM_KEYPAIR=$(FAKE_PYTH_PROGRAM_KEYPAIR) $(MAKE) deploy-int
+>@ if [ $(CLUSTER) = "localnet" ]; then\
+	   # Deploy fake pyth only on localnet\
+       PROGRAM_SO=$(FAKE_PYTH_PROGRAM_SO) PROGRAM_KEYPAIR=$(FAKE_PYTH_PROGRAM_KEYPAIR) $(MAKE) deploy-int;\
+   fi
 
 deploy-int: $(PROGRAM_SO) $(PROGRAM_KEYPAIR) $(OWNER_KEYPAIR)
->@ echo "*******Deploy $(PROGRAM_SO)*******"
->@ solana program deploy -u $(URL) --upgrade-authority $(OWNER_KEYPAIR) --program-id $(PROGRAM_KEYPAIR) $(PROGRAM_SO)
+>@ echo "*******Deploy $(PROGRAM_SO) to $(URL)*******"
+>@ PROGRAM_SIZE=$(shell stat -c%s "$(PROGRAM_SO)");\
+   PROGRAM_SIZE=$$(( PROGRAM_SIZE * 4 ));\
+   echo "Program allocated size: $$PROGRAM_SIZE";\
+   solana program deploy -v \
+   -u $(URL) \
+   --program-id $(PROGRAM_KEYPAIR) \
+   --keypair $(OWNER_KEYPAIR) \
+   --upgrade-authority $(OWNER_KEYPAIR) \
+   --max-len $$PROGRAM_SIZE \
+   $(PROGRAM_SO)
 
 ## Listen to on-chain logs
 listen:
-> solana logs ${SCOPE_PROGRAM_ID}
+> solana logs -u $(URL) ${SCOPE_PROGRAM_ID}
 
 test: test-rust test-ts
 
@@ -88,12 +122,23 @@ test-rust:
 test-ts: $(SCOPE_CLI)
 > yarn run ts-mocha -t 1000000 tests/**/*.ts
 
-## Client side
-build-client:
-> npm run build
-
-run:
-> npm run start
-
+# airdrop done this way to stay in devnet limits
 airdrop: $(OWNER_KEYPAIR)
-> solana airdrop 10 ${PROGRAM_DEPLOY_ACCOUNT} --url http://127.0.0.1:8899
+>@ if [ $(CLUSTER) = "localnet" ]; then\
+      solana airdrop 50 ${PROGRAM_DEPLOY_ACCOUNT} --url $(URL);\
+   fi
+>@ if [ $(CLUSTER) = "devnet" ]; then\
+       for number in `seq 0 10`; do solana airdrop 2 ${PROGRAM_DEPLOY_ACCOUNT} --url $(URL); sleep 10; done;\
+   fi
+>@ if [ $(CLUSTER) = "mainnet" ] || [ $(CLUSTER) = "mainnet-beta" ]; then\
+       echo "No airdrop on mainnet";\
+   fi
+
+init:
+> cargo run --bin scope -- --cluster $(URL) --keypair $(OWNER_KEYPAIR) --program-id $(SCOPE_PROGRAM_ID) --price-feed $(FEED_NAME) init --mapping ./configs/$(CLUSTER)/$(FEED_NAME).json
+
+update-mapping:
+> cargo run --bin scope -- --cluster $(URL) --keypair $(OWNER_KEYPAIR) --program-id $(SCOPE_PROGRAM_ID) --price-feed $(FEED_NAME) update --mapping ./configs/$(CLUSTER)/$(FEED_NAME).json
+
+crank:
+> cargo run --bin scope -- --cluster $(URL) --keypair $(OWNER_KEYPAIR) --program-id $(SCOPE_PROGRAM_ID) --price-feed $(FEED_NAME) crank --mapping ./configs/$(CLUSTER)/$(FEED_NAME).json
