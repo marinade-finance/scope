@@ -12,17 +12,20 @@ use std::time::{Duration, Instant};
 
 use clap::{Parser, Subcommand};
 
-use tracing::{error, info, trace, warn};
+use tracing::{error, info, trace};
 
 use anyhow::Result;
 
+mod cluster_parse;
 mod web;
+
+use cluster_parse::parse;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
     /// Connect to solana validator
-    #[clap(long, env, parse(try_from_str), default_value = "localnet")]
+    #[clap(long, env, parse(try_from_str=parse), default_value = "localnet")]
     cluster: Cluster,
 
     /// Account keypair to pay for the transactions
@@ -194,8 +197,6 @@ fn crank(
         if refresh_interval_slot > oldest_age {
             let sleep_ms = (refresh_interval_slot - oldest_age) * clock::DEFAULT_MS_PER_SLOT;
             sleep(Duration::from_millis(sleep_ms));
-        } else {
-            warn!("No sleep, some prices are already too old");
         }
     }
 

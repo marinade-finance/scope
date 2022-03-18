@@ -22,9 +22,6 @@ $1: phony
 
 endef
 
-#declare CLUSTER to be dependable
-$(eval $(call DEPENDABLE_VAR,CLUSTER))
-
 # TODO: not sure if it really works
 ifneq (,$(wildcard ./.env))
 	include ./.env
@@ -33,6 +30,9 @@ endif
 CLUSTER ?= localnet
 OWNER_KEYPAIR ?= ./keys/$(CLUSTER)/owner.json
 FEED_NAME ?= hubble
+
+#declare CLUSTER to be dependable
+$(eval $(call DEPENDABLE_VAR,CLUSTER))
 
 ifeq ($(CLUSTER),localnet)
 	URL ?= "http://127.0.0.1:8899"
@@ -141,4 +141,4 @@ update-mapping:
 > cargo run --bin scope -- --cluster $(URL) --keypair $(OWNER_KEYPAIR) --program-id $(SCOPE_PROGRAM_ID) --price-feed $(FEED_NAME) update --mapping ./configs/$(CLUSTER)/$(FEED_NAME).json
 
 crank:
-> cargo run --bin scope -- --cluster $(URL) --keypair $(OWNER_KEYPAIR) --program-id $(SCOPE_PROGRAM_ID) --price-feed $(FEED_NAME) crank --mapping ./configs/$(CLUSTER)/$(FEED_NAME).json
+> cargo run --bin scope -- --cluster $(URL) --keypair $(OWNER_KEYPAIR) --program-id $(SCOPE_PROGRAM_ID) --price-feed $(FEED_NAME) crank
