@@ -1,6 +1,7 @@
 use std::ops::RangeInclusive;
 
-use crate::{utils::pyth::get_price, ScopeError};
+use crate::utils::PriceType;
+use crate::{utils::get_price, ScopeError};
 use anchor_lang::prelude::*;
 
 const BATCH_UPDATE_SIZE: usize = 8;
@@ -63,9 +64,13 @@ pub fn refresh_one_price(ctx: Context<RefreshOne>, token: usize) -> Result<()> {
         return Err(ScopeError::UnexpectedAccount.into());
     }
 
+    let price_type: PriceType = oracle_mappings.price_types[token]
+        .try_into()
+        .map_err(|_| ScopeError::BadTokenType)?;
+
     let mut oracle = ctx.accounts.oracle_prices.load_mut()?;
 
-    let price = get_price(pyth_price_info)?;
+    let price = get_price(price_type, pyth_price_info, token)?;
 
     oracle.prices[token] = price;
 

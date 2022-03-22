@@ -83,7 +83,7 @@ pub struct OraclePrices {
 #[account(zero_copy)]
 pub struct OracleMappings {
     pub price_info_accounts: [Pubkey; MAX_ENTRIES],
-    pub _reserved: [u8; MAX_ENTRIES],
+    pub price_types: [u8; MAX_ENTRIES],
     pub _reserved2: [u64; MAX_ENTRIES],
 }
 
@@ -122,6 +122,8 @@ pub enum ScopeError {
 
     #[msg("The token index received is out of range")]
     BadTokenNb,
+    //TODO
+    BadTokenType,
 }
 
 impl<T> From<TryFromPrimitiveError<T>> for ScopeError
