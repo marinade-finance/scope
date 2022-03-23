@@ -14,8 +14,13 @@ cpi = ["no-entrypoint"]
 
 [dependencies]
 anchor-lang = "0.22.0"
+anchor-spl = { version = "0.22.0", features = ["dex", "token"] }
+spl-token = { version = "3.1.1", features = ["no-entrypoint"] }
 num_enum = "0.5.6"
 pyth-client = "0.2.2"
+serde = "1.0.136"
+serde_json = "1.0.79"
+num-traits = "0.2.14"
 
 [build-dependencies]
 serde = "1.0.136"

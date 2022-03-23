@@ -5,6 +5,7 @@ pub mod handlers;
 pub mod utils;
 
 pub use handlers::*;
+pub use utils::*;
 
 const PROGRAM_ID: Pubkey = Pubkey::new_from_array(include!(concat!(env!("OUT_DIR"), "/pubkey.rs")));
 
@@ -28,6 +29,11 @@ mod scope {
         handler_refresh_prices::refresh_one_price(ctx, token)
     }
 
+    pub fn refresh_yi_token(ctx: Context<RefreshYiToken>, token: u64) -> Result<()> {
+        let token: usize = token.try_into().map_err(|_| ScopeError::OutOfRangeIntegralConversion)?;
+        handler_yitoken_prices::refresh_yi_token(ctx, token)
+    }
+
     pub fn refresh_batch_prices(ctx: Context<RefreshBatch>, first_token: u64) -> Result<()> {
         let first_token: usize = first_token
             .try_into()
@@ -39,11 +45,11 @@ mod scope {
         handler_refresh_prices::refresh_price_list(ctx, &tokens)
     }
 
-    pub fn update_mapping(ctx: Context<UpdateOracleMapping>, token: u64) -> Result<()> {
+    pub fn update_mapping(ctx: Context<UpdateOracleMapping>, token: u64, price_type: u8) -> Result<()> {
         let token: usize = token
             .try_into()
             .map_err(|_| ScopeError::OutOfRangeIntegralConversion)?;
-        handler_update_mapping::process(ctx, token)
+        handler_update_mapping::process(ctx, token, price_type)
     }
 }
 

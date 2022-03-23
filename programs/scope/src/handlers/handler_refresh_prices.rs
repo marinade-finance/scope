@@ -112,17 +112,17 @@ pub fn refresh_batch_prices(ctx: Context<RefreshBatch>, first_token: usize) -> R
         if *expected != received.key() {
             return Err(ScopeError::UnexpectedAccount.into());
         }
-        match get_price(received) {
-            Ok(price) => *to_update = price,
-            Err(_) => msg!("Price skipped as validation failed"), // No format as its a bit costly
-        };
+        // match get_price(received) {
+        //     Ok(price) => *to_update = price,
+        //     Err(_) => msg!("Price skipped as validation failed"), // No format as its a bit costly
+        // };
     }
 
     Ok(())
 }
 
 pub fn refresh_price_list(ctx: Context<RefreshList>, tokens: &[u16]) -> Result<()> {
-    let oracle_mappings = &ctx.accounts.oracle_mappings.load()?.price_info_accounts;
+    let oracle_mappings = &ctx.accounts.oracle_mappings.load()?;
     let oracle_prices = &mut ctx.accounts.oracle_prices.load_mut()?.prices;
 
     // Check that the received token list is not too long
@@ -138,18 +138,21 @@ pub fn refresh_price_list(ctx: Context<RefreshList>, tokens: &[u16]) -> Result<(
 
     for (&token_nb, received_account) in tokens.iter().zip(ctx.remaining_accounts.iter()) {
         let token_idx: usize = token_nb.into();
-        let oracle_mapping = oracle_mappings
+        let oracle_mapping = oracle_mappings.price_info_accounts
             .get(token_idx)
             .ok_or(ScopeError::BadTokenNb)?;
+        let price_type: PriceType = oracle_mappings.price_types[token_idx]
+            .try_into()
+            .map_err(|_| ScopeError::BadTokenType)?;
         // Ignore unset mapping accounts
         if zero_pk == *oracle_mapping {
             continue;
         }
         // Check that the provided pyth accounts are the one referenced in oracleMapping
-        if oracle_mappings[token_idx] != received_account.key() {
+        if oracle_mappings.price_info_accounts[token_idx] != received_account.key() {
             return Err(ScopeError::UnexpectedAccount.into());
         }
-        match get_price(received_account) {
+        match get_price(price_type, received_account, token_idx) {
             Ok(price) => {
                 let to_update = oracle_prices
                     .get_mut(token_idx)
@@ -162,3 +165,4 @@ pub fn refresh_price_list(ctx: Context<RefreshList>, tokens: &[u16]) -> Result<(
 
     Ok(())
 }
+

@@ -99,7 +99,7 @@ deploy:
 
 deploy-int: $(PROGRAM_SO) $(PROGRAM_KEYPAIR) $(OWNER_KEYPAIR)
 >@ echo "*******Deploy $(PROGRAM_SO) to $(URL)*******"
->@ PROGRAM_SIZE=$(shell stat -c%s "$(PROGRAM_SO)");\
+>@ PROGRAM_SIZE=$(shell stat -f '%z' "$(PROGRAM_SO)");\
    PROGRAM_SIZE=$$(( PROGRAM_SIZE * 4 ));\
    echo "Program allocated size: $$PROGRAM_SIZE";\
    solana program deploy -v \
