@@ -34,13 +34,6 @@ mod scope {
         handler_yitoken_prices::refresh_yi_token(ctx, token)
     }
 
-    pub fn refresh_batch_prices(ctx: Context<RefreshBatch>, first_token: u64) -> Result<()> {
-        let first_token: usize = first_token
-            .try_into()
-            .map_err(|_| ScopeError::OutOfRangeIntegralConversion)?;
-        handler_refresh_prices::refresh_batch_prices(ctx, first_token)
-    }
-
     pub fn refresh_price_list(ctx: Context<RefreshList>, tokens: Vec<u16>) -> Result<()> {
         handler_refresh_prices::refresh_price_list(ctx, &tokens)
     }

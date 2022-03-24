@@ -15,12 +15,9 @@ pub fn get_price(price_type: PriceType,
     }
     let yi_underlying_tokens_amount = yi_underlying_tokens.amount;
     let yi_mint_supply = yi_mint.supply;
-    msg!("\n\n\n\n\n\nyi underlying {}", yi_underlying_tokens_amount);
-    msg!("\n\n\n\n\nyi supply {}", yi_mint_supply);
     let price_amount = 100_000_000u128
-        .checked_mul(yi_mint_supply.into()).ok_or(MathOverflow)?
-        .checked_div(yi_underlying_tokens_amount.into()).ok_or(MathOverflow)?.to_u64().ok_or(MathOverflow)?;
-    msg!("\n\n\n\n\n\nmakPrice amount {}", price_amount);
+        .checked_mul(yi_underlying_tokens_amount.into()).ok_or(MathOverflow)?
+        .checked_div(yi_mint_supply.into()).ok_or(MathOverflow)?.to_u64().ok_or(MathOverflow)?;
     let dated_price = DatedPrice {
         price: Price {
             value: price_amount,

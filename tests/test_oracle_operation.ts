@@ -113,7 +113,7 @@ describe("Scope tests", () => {
         oracleMappingAccount = oracleMappingAccount_kp.publicKey;
 
         console.log(`program data address is ${programDataAddress.toBase58()}`);
-        
+
         await program.rpc.initialize(
             PRICE_FEED,
             {
@@ -218,38 +218,6 @@ describe("Scope tests", () => {
             let oracle = await program.account.oraclePrices.fetch(oracleAccount);
             checkOraclePrice(Tokens.ETH, oracle);
             checkOraclePrice(Tokens.RAY, oracle);
-        }
-    });
-
-    it('test_update_batch_prices', async () => {
-        await program.rpc.refreshBatchPrices(
-            new BN(0),
-            {
-                accounts: {
-                    oraclePrices: oracleAccount,
-                    oracleMappings: oracleMappingAccount,
-                    pythPriceInfo0: fakePythAccounts[0],
-                    pythPriceInfo1: fakePythAccounts[1],
-                    pythPriceInfo2: fakePythAccounts[2],
-                    pythPriceInfo3: fakePythAccounts[3],
-                    pythPriceInfo4: fakePythAccounts[4],
-                    pythPriceInfo5: fakePythAccounts[5],
-                    pythPriceInfo6: fakePythAccounts[6],
-                    pythPriceInfo7: PublicKey.default,
-                    clock: SYSVAR_CLOCK_PUBKEY
-                },
-                signers: []
-            });
-        // Retrieve the price account
-        let oracle = await program.account.oraclePrices.fetch(oracleAccount);
-        // Check all
-        for (const token in Object.values(Tokens)) {
-            let tokenId = Number(token);
-            if (isNaN(tokenId) || tokenId >= initialTokens.length) {
-                // Safety measure
-                break;
-            }
-            checkOraclePrice(tokenId, oracle);
         }
     });
 

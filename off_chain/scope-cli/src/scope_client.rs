@@ -133,16 +133,22 @@ impl ScopeClient {
 
     /// Update the remote oracle mapping from the local
     pub fn upload_oracle_mapping(&self) -> Result<()> {
-        let onchain_mapping = self.get_program_mapping()?.price_info_accounts;
+        let program_mapping = self.get_program_mapping()?;
+        let onchain_accounts_mapping = program_mapping.price_info_accounts;
+        let onchain_price_type_mapping = program_mapping.price_types;
 
         // For all "token" local and remote
-        for (token, (loc_mapping, rem_mapping)) in
-            self.oracle_mappings.iter().zip(onchain_mapping).enumerate()
+        for (token, (local_mapping, local_price_type)) in
+            self.oracle_mappings.iter().zip(self.token_price_type.iter())
+                .enumerate()
         {
+            let rem_mapping = onchain_accounts_mapping[token];
+            let rem_price_type = onchain_price_type_mapping[token];
             // Update remote in case of difference
-            let loc_pk = loc_mapping.unwrap_or_default();
-            if rem_mapping != loc_pk {
-                self.ix_update_mapping(&loc_pk, token.try_into()?)?;
+            let local_mapping_pk = local_mapping.unwrap_or_default();
+            let loc_price_type_u8 = *local_price_type as u8;
+            if rem_mapping != local_mapping_pk || rem_price_type != loc_price_type_u8 {
+                self.ix_update_mapping(&local_mapping_pk, token.try_into()?, loc_price_type_u8)?;
             }
         }
         Ok(())
@@ -409,7 +415,7 @@ impl ScopeClient {
     }
 
     #[tracing::instrument(skip(self))]
-    fn ix_update_mapping(&self, oracle_account: &Pubkey, token: u64) -> Result<()> {
+    fn ix_update_mapping(&self, oracle_account: &Pubkey, token: u64, price_type: u8) -> Result<()> {
         let update_account = accounts::UpdateOracleMapping {
             oracle_mappings: self.oracle_mappings_acc,
             pyth_price_info: *oracle_account,
@@ -422,7 +428,7 @@ impl ScopeClient {
 
         let res = request
             .accounts(update_account)
-            .args(instruction::UpdateMapping { token })
+            .args(instruction::UpdateMapping { token, price_type })
             .send();
 
         match res {
@@ -485,41 +491,6 @@ impl ScopeClient {
             .send()?;
 
         info!("Price refreshed successfully");
-
-        Ok(())
-    }
-
-    #[tracing::instrument(skip(self))]
-    fn ix_refresh_8_prices(&self, first_token: u64) -> Result<()> {
-        let first_token_idx = usize::try_from(first_token)?;
-        let oracle_accounts: Vec<Pubkey> = self.oracle_mappings
-            [first_token_idx..first_token_idx.checked_add(8).unwrap()]
-            .iter()
-            .map(|op_pk| op_pk.unwrap_or_default())
-            .collect();
-
-        let refresh_account = accounts::RefreshBatch {
-            oracle_prices: self.oracle_prices_acc,
-            oracle_mappings: self.oracle_mappings_acc,
-            pyth_price_info_0: oracle_accounts[0],
-            pyth_price_info_1: oracle_accounts[1],
-            pyth_price_info_2: oracle_accounts[2],
-            pyth_price_info_3: oracle_accounts[3],
-            pyth_price_info_4: oracle_accounts[4],
-            pyth_price_info_5: oracle_accounts[5],
-            pyth_price_info_6: oracle_accounts[6],
-            pyth_price_info_7: oracle_accounts[7],
-            clock: Clock::id(),
-        };
-
-        let request = self.program.request();
-
-        request
-            .accounts(refresh_account)
-            .args(instruction::RefreshBatchPrices { first_token })
-            .send()?;
-
-        info!("Prices refreshed successfully");
 
         Ok(())
     }

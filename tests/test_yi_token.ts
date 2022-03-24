@@ -28,9 +28,70 @@ enum Tokens {
 
 const initialTokens = [
     {
+        price: new Decimal('228.41550900'),
+        ticker: Buffer.from('SOL'),
+        decimals: 8,
+        priceType: 0
+    },
+    {
+        price: new Decimal('4726.59830000'),
+        ticker: Buffer.from('ETH'),
+        decimals: 8,
+        priceType: 0
+    },
+    {
+        price: new Decimal('64622.36900000'),
+        ticker: Buffer.from('BTC'),
+        decimals: 8,
+        priceType: 0
+    },
+    {
+        price: new Decimal('7.06975570'),
+        ticker: Buffer.from('SRM'),
+        decimals: 8,
+        priceType: 0
+    },
+    {
+        price: new Decimal('11.10038050'),
+        ticker: Buffer.from('RAY'),
+        decimals: 8,
+        priceType: 0
+    },
+    {
+        price: new Decimal('59.17104600'),
+        ticker: Buffer.from('FTT'),
+        decimals: 8,
+        priceType: 0
+    },
+    {
+        price: new Decimal('253.41550900'),
+        ticker: Buffer.from('MSOL'),
+        decimals: 8,
+        priceType: 0
+    },
+    {
         price: new Decimal('228.415509'),
+        ticker: Buffer.from('UST'),
+        decimals: 8,
+        priceType: 0
+    },
+    {
+        price: new Decimal('11.10038050'),
+        ticker: Buffer.from('BNB'),
+        decimals: 8,
+        priceType: 0
+    },
+    {
+        price: new Decimal('59.17104600'),
+        ticker: Buffer.from('AVAX'),
+        decimals: 8,
+        priceType: 0
+    },
+    {
+        price: new Decimal('253.41550900'),
         ticker: Buffer.from('STSOLUST'),
-        decimals: 6
+        decimals: 8,
+        priceType: 2
     },
 ]
 
@@ -143,7 +204,7 @@ describe("Yi Scope tests", () => {
             console.log(`Set mapping of ${initialTokens[idx].ticker}`)
 
             await program.rpc.updateMapping(
-                new BN(idx), 0,
+                new BN(idx), initialTokens[idx].priceType,
                 {
                     accounts: {
                         admin: admin.publicKey,

@@ -28,17 +28,17 @@ pub fn refresh_yi_token(ctx: Context<RefreshYiToken>, token: usize) -> Result<()
     let YI_MINT_ACCOUNT: Pubkey = Pubkey::from_str(YI_MINT_ACC_STR).unwrap();
     let YI_UNDERLYING_TOKEN_ACCOUNT: Pubkey = Pubkey::from_str(YI_UNDERLYING_TOKEN_ACC_STR).unwrap();
     let oracle_mappings = ctx.accounts.oracle_mappings.load()?;
-    // let price_type: PriceType = oracle_mappings.price_types[token]
-    //     .try_into()
-    //     .map_err(|_| ScopeError::BadTokenType)?;
-    // Check that the provided pyth account is the one referenced in oracleMapping
+    let price_type: PriceType = oracle_mappings.price_types[token]
+        .try_into()
+        .map_err(|_| ScopeError::BadTokenType)?;
+
     if YI_UNDERLYING_TOKEN_ACCOUNT != ctx.accounts.yi_underlying_tokens.key() || YI_MINT_ACCOUNT != ctx.accounts.yi_mint.key() {
         return Err(ScopeError::UnexpectedAccount.into());
     }
 
     let mut oracle = ctx.accounts.oracle_prices.load_mut()?;
 
-    let price = get_price(PriceType::YiToken, &ctx.accounts.yi_underlying_tokens, &ctx.accounts.yi_mint)?;
+    let price = get_price(price_type, &ctx.accounts.yi_underlying_tokens, &ctx.accounts.yi_mint)?;
 
     oracle.prices[token] = price;
 
