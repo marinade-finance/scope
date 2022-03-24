@@ -21,45 +21,80 @@ enum Tokens {
     SRM,
     RAY,
     FTT,
-    MSOL
+    MSOL,
+    UST,
+    BNB,
+    AVAX,
+    STSOLUST
 }
 
 let tokenList = [
     {
         price: new Decimal('228.41550900'),
         ticker: Buffer.from('SOL'),
-        decimals: 8
+        decimals: 8,
+        priceType: 0
     },
     {
         price: new Decimal('4726.59830000'),
         ticker: Buffer.from('ETH'),
-        decimals: 8
+        decimals: 8,
+        priceType: 0
     },
     {
         price: new Decimal('64622.36900000'),
         ticker: Buffer.from('BTC'),
-        decimals: 8
+        decimals: 8,
+        priceType: 0
     },
     {
         price: new Decimal('7.06975570'),
         ticker: Buffer.from('SRM'),
-        decimals: 8
+        decimals: 8,
+        priceType: 0
     },
     {
         price: new Decimal('11.10038050'),
         ticker: Buffer.from('RAY'),
-        decimals: 8
+        decimals: 8,
+        priceType: 0
     },
     {
         price: new Decimal('59.17104600'),
         ticker: Buffer.from('FTT'),
-        decimals: 8
+        decimals: 8,
+        priceType: 0
     },
     {
         price: new Decimal('253.41550900'),
         ticker: Buffer.from('MSOL'),
-        decimals: 8
-    }
+        decimals: 8,
+        priceType: 0
+    },
+    {
+        price: new Decimal('228.415509'),
+        ticker: Buffer.from('UST'),
+        decimals: 8,
+        priceType: 0
+    },
+    {
+        price: new Decimal('11.10038050'),
+        ticker: Buffer.from('BNB'),
+        decimals: 8,
+        priceType: 0
+    },
+    {
+        price: new Decimal('59.17104600'),
+        ticker: Buffer.from('AVAX'),
+        decimals: 8,
+        priceType: 0
+    },
+    {
+        price: new Decimal('0.90987600'),
+        ticker: Buffer.from('STSOLUST'),
+        decimals: 8,
+        priceType: 2
+    },
 ]
 
 const PRICE_FEED = "crank_test_feed"
@@ -80,8 +115,14 @@ function checkAllOraclePrices(oraclePrices: any) {
         let price = oraclePrices.prices[getRevisedIndex(idx)].price;
         let value = price.value.toNumber();
         let expo = price.exp.toNumber();
-        let in_decimal = new Decimal(value).mul((new Decimal(10)).pow(new Decimal(-expo)))
-        expect(in_decimal).decimal.eq(tokenData.price);
+        let in_decimal = new Decimal(value).mul((new Decimal(10)).pow(new Decimal(-expo)));
+        if (idx == 10) {
+            console.log("yi price ", tokenData.price);
+        }
+        else {
+            console.log("idx expected new", idx, in_decimal, tokenData.price);
+            expect(in_decimal).decimal.eq(tokenData.price);
+        };
     });
 }
 
@@ -185,9 +226,8 @@ describe("Scope crank bot tests", () => {
 
         await Promise.all(fakePythAccounts.map(async (fakePythAccount, idx): Promise<any> => {
             console.log(`Set mapping of ${tokenList[idx].ticker}`)
-
             await program.rpc.updateMapping(
-                new BN(getRevisedIndex(idx)),
+                new BN(getRevisedIndex(idx)), tokenList[idx].priceType,
                 {
                     accounts: {
                         admin: admin.publicKey,
@@ -211,6 +251,8 @@ describe("Scope crank bot tests", () => {
         await scopeBot.crank();
 
         await scopeBot.nextLogMatches((c) => c.includes('Prices refreshed successfully'), 10000);
+        await scopeBot.nextLogMatches((c) => c.includes('Check-update for Yi Token ran successfully'), 10000);
+
         await sleep(500);// One block await
 
         {

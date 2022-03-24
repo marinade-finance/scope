@@ -38,7 +38,7 @@ pub fn refresh_yi_token(ctx: Context<RefreshYiToken>, token: usize) -> Result<()
 
     let mut oracle = ctx.accounts.oracle_prices.load_mut()?;
 
-    let price = get_price(price_type, &ctx.accounts.yi_underlying_tokens, &ctx.accounts.yi_mint)?;
+    let price = get_price(price_type, &ctx.accounts.yi_underlying_tokens, &ctx.accounts.yi_mint, ctx.accounts.clock.slot)?;
 
     oracle.prices[token] = price;
 

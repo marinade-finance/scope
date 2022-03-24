@@ -36,9 +36,10 @@ pub fn process(ctx: Context<UpdateOracleMapping>, token: usize, price_type: u8) 
     // Every check succeeded, replace current with new
     *current_price_pubkey = new_price_pubkey;
 
-    let stored_price_type = &mut oracle_mappings.price_types[token];
+    //let stored_price_type = &mut oracle_mappings.price_types[token];
     let _price_type: PriceType = price_type.try_into().map_err(|_| ScopeError::BadTokenType)?;
-    *stored_price_type = price_type;
+    msg!("price_type in update mapping {}", price_type);
+    oracle_mappings.price_types[token] = price_type;
 
     Ok(())
 }

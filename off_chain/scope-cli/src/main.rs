@@ -223,6 +223,8 @@ fn crank(
         let oldest_age = scope.get_oldest_price_age()?;
         trace!(oldest_age);
 
+        scope.check_refresh_yi_token()?;
+
         if refresh_interval_slot > oldest_age {
             let sleep_ms = (refresh_interval_slot - oldest_age) * clock::DEFAULT_MS_PER_SLOT;
             sleep(Duration::from_millis(sleep_ms));

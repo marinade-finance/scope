@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::clock;
 use anchor_spl::token::{TokenAccount, Mint};
 use num_traits::ToPrimitive;
 use crate::{DatedPrice, Price, ScopeError};
@@ -7,7 +8,7 @@ use crate::utils::PriceType;
 
 pub fn get_price(price_type: PriceType,
                  yi_underlying_tokens: &Account<TokenAccount>,
-                 yi_mint: &Account<Mint>) -> Result<DatedPrice> {
+                 yi_mint: &Account<Mint>, clock_slot: clock::Slot) -> Result<DatedPrice> {
     match price_type {
         PriceType::Pyth => return Err(ScopeError::BadTokenType.into()),
         PriceType::Switchboard => todo!(),
@@ -23,7 +24,7 @@ pub fn get_price(price_type: PriceType,
             value: price_amount,
             exp: 8,
         },
-        last_updated_slot: 0u64, //todo: fix this!!!
+        last_updated_slot: clock_slot, //todo: fix this!!!
         ..Default::default()
     };
     Ok(dated_price)
