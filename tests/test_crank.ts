@@ -1,5 +1,15 @@
+import {Token} from "@solana/spl-token";
+
 require('dotenv').config();
-import { Keypair, PublicKey, SystemProgram, SYSVAR_CLOCK_PUBKEY, Connection, ConnectionConfig, SYSVAR_RENT_PUBKEY } from '@solana/web3.js';
+import {
+    Keypair,
+    PublicKey,
+    SystemProgram,
+    Connection,
+    ConnectionConfig,
+    SYSVAR_RENT_PUBKEY,
+    Transaction
+} from '@solana/web3.js';
 import { Provider, Program, setProvider, BN } from "@project-serum/anchor"
 import { sleep } from '@project-serum/common';
 import NodeWallet from '@project-serum/anchor/dist/cjs/nodewallet';
@@ -10,6 +20,7 @@ import { expect } from 'chai';
 import chaiDecimalJs from 'chai-decimaljs';
 import * as global from './global';
 import * as bot from './bot_utils';
+import {TOKEN_PROGRAM_ID} from "@project-serum/serum/lib/token-instructions";
 
 chai.use(chaiDecimalJs(Decimal));
 
@@ -120,9 +131,8 @@ function checkAllOraclePrices(oraclePrices: any) {
             console.log("yi price ", tokenData.price);
         }
         else {
-            console.log("idx expected new", idx, in_decimal, tokenData.price);
             expect(in_decimal).decimal.eq(tokenData.price);
-        };
+        }
     });
 }
 
@@ -253,7 +263,7 @@ describe("Scope crank bot tests", () => {
         await scopeBot.nextLogMatches((c) => c.includes('Prices refreshed successfully'), 10000);
         await scopeBot.nextLogMatches((c) => c.includes('Check-update for Yi Token ran successfully'), 10000);
 
-        await sleep(500);// One block await
+        await sleep(1500);// One block await
 
         {
             let oracle = await program.account.oraclePrices.fetch(oracleAccount);
@@ -277,6 +287,63 @@ describe("Scope crank bot tests", () => {
             let oracle = await program.account.oraclePrices.fetch(oracleAccount);
             checkAllOraclePrices(oracle);
         }
+    });
+
+    it('test_yi_price_not_change', async () => {
+        let oracle = await program.account.oraclePrices.fetch(oracleAccount);
+        let price = oracle.prices[getRevisedIndex(10)].price;
+        let value = price.value.toNumber();
+        let expo = price.exp.toNumber();
+        let in_decimal_before = new Decimal(value).mul((new Decimal(10)).pow(new Decimal(-expo)));
+        scopeBot = new bot.ScopeBot(program.programId, keypair_path, PRICE_FEED);
+        await scopeBot.crank();
+
+        await scopeBot.nextLogMatches((c) => c.includes('Prices refreshed successfully'), 10000);
+        await scopeBot.nextLogMatches((c) => c.includes('Price for Yi Token has not changed'), 10000);
+
+        await sleep(2000);// One block await
+        oracle = await program.account.oraclePrices.fetch(oracleAccount);
+        price = oracle.prices[getRevisedIndex(10)].price;
+        value = price.value.toNumber();
+        expo = price.exp.toNumber();
+        let in_decimal_after = new Decimal(value).mul((new Decimal(10)).pow(new Decimal(-expo)));
+        expect(in_decimal_after.toNumber()).eq(in_decimal_before.toNumber());
+    });
+
+
+    it('test_yi_price_change', async () => {
+        let oracle = await program.account.oraclePrices.fetch(oracleAccount);
+        let price = oracle.prices[getRevisedIndex(10)].price;
+        let value = price.value.toNumber();
+        let expo = price.exp.toNumber();
+        let in_decimal_before = new Decimal(value).mul((new Decimal(10)).pow(new Decimal(-expo)));
+        let mint_amount = 10_000_000 * 1_000_000; //10 million solUST * 1 million factor (for 6 decimals)
+        const tx = new Transaction().add(
+            Token.createMintToInstruction(
+                TOKEN_PROGRAM_ID, // always TOKEN_PROGRAM_ID
+                new PublicKey('JAa3gQySiTi8tH3dpkvgztJWHQC1vGXr5m6SQ9LEM55T'), // mint
+                new PublicKey('EDLcx5J9aBkA6a7V5aQLqb8nnBByNhhNn8Qr9QksHobc'), // Yi Underlying token account
+                provider.wallet.publicKey, // mint authority
+                [], // only multisig account will use. leave it empty now.
+                mint_amount, // amount. if your decimals is 8, you mint 10^8 for 1 token.
+            )
+        );
+
+        await provider.send(tx);
+        await sleep(2000);
+        scopeBot = new bot.ScopeBot(program.programId, keypair_path, PRICE_FEED);
+        await scopeBot.crank();
+
+        await scopeBot.nextLogMatches((c) => c.includes('Prices refreshed successfully'), 10000);
+        await scopeBot.nextLogMatches((c) => c.includes('Prices for Yi Token updated successfully at yi_idx 10'), 10000);
+
+        await sleep(2000);// One block await
+        oracle = await program.account.oraclePrices.fetch(oracleAccount);
+        price = oracle.prices[getRevisedIndex(10)].price;
+        value = price.value.toNumber();
+        expo = price.exp.toNumber();
+        let in_decimal_after = new Decimal(value).mul((new Decimal(10)).pow(new Decimal(-expo)));
+        expect(in_decimal_after.toNumber()).gt(in_decimal_before.toNumber());
     });
 
 });

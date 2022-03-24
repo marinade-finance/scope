@@ -330,6 +330,9 @@ impl ScopeClient {
             self.ix_refresh_yi_token_price(yi_idx.try_into()?);
             info!("Prices for Yi Token updated successfully at yi_idx {}", yi_idx);
         }
+        else {
+            info!("Price for Yi Token has not changed");
+        }
 
         info!("Check-update for Yi Token ran successfully");
         Ok(())
