@@ -9,5 +9,6 @@ build
 .idea/
 test-ledger/
 keys/
+!keys/localnet/owner.json
 .vscode/
 CLUSTER
