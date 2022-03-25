@@ -99,16 +99,20 @@ deploy:
 
 deploy-int: $(PROGRAM_SO) $(PROGRAM_KEYPAIR) $(OWNER_KEYPAIR)
 >@ echo "*******Deploy $(PROGRAM_SO) to $(URL)*******"
->@ PROGRAM_SIZE=$(shell stat -f '%z' "$(PROGRAM_SO)");\
-   PROGRAM_SIZE=$$(( PROGRAM_SIZE * 4 ));\
-   echo "Program allocated size: $$PROGRAM_SIZE";\
-   solana program deploy -v \
-   -u $(URL) \
-   --program-id $(PROGRAM_KEYPAIR) \
-   --keypair $(OWNER_KEYPAIR) \
-   --upgrade-authority $(OWNER_KEYPAIR) \
-   --max-len $$PROGRAM_SIZE \
-   $(PROGRAM_SO)
+>@ if [ $(shell uname -s) = "Darwin" ]; then \
+      PROGRAM_SIZE=$(shell stat -f '%z' "$(PROGRAM_SO)");\
+   else \
+      PROGRAM_SIZE=$(shell stat -c%s "$(PROGRAM_SO)"); \
+   fi
+>@ PROGRAM_SIZE=$$(( PROGRAM_SIZE * 4 ))
+>@ echo "Program allocated size: $$PROGRAM_SIZE"
+>@ solana program deploy -v \
+    -u $(URL) \
+    --program-id $(PROGRAM_KEYPAIR) \
+    --keypair $(OWNER_KEYPAIR) \
+    --upgrade-authority $(OWNER_KEYPAIR) \
+    --max-len $$PROGRAM_SIZE \
+    $(PROGRAM_SO)
 
 ## Listen to on-chain logs
 listen:
