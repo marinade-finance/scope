@@ -282,7 +282,7 @@ describe("Scope crank bot tests", () => {
             await setAllPythPrices();
 
             await scopeBot.nextLogMatches((c) => c.includes('Prices refreshed successfully'), 10000);
-            await sleep(500);// One block await
+            await sleep(2000);
 
             let oracle = await program.account.oraclePrices.fetch(oracleAccount);
             checkAllOraclePrices(oracle);
@@ -335,9 +335,9 @@ describe("Scope crank bot tests", () => {
         await scopeBot.crank();
 
         await scopeBot.nextLogMatches((c) => c.includes('Prices refreshed successfully'), 10000);
-        await scopeBot.nextLogMatches((c) => c.includes('Prices for Yi Token updated successfully at yi_idx 10'), 10000);
+        await scopeBot.nextLogMatches((c) => c.includes('Prices for Yi Token updated successfully'), 10000);
 
-        await sleep(2000);// One block await
+        await sleep(2000);
         oracle = await program.account.oraclePrices.fetch(oracleAccount);
         price = oracle.prices[getRevisedIndex(10)].price;
         value = price.value.toNumber();
