@@ -14,10 +14,10 @@ pub struct RefreshYiToken<'info> {
     pub oracle_prices: AccountLoader<'info, crate::OraclePrices>,
     #[account()]
     pub oracle_mappings: AccountLoader<'info, crate::OracleMappings>,
-    /// CHECK: In ix, check the account is in `oracle_mappings`
+    /// CHECK: In ix, check the account vs a constant
     #[account()]
     pub yi_underlying_tokens: Account<'info, TokenAccount>,
-    /// CHECK: In ix, check the account is in `oracle_mappings`
+    /// CHECK: In ix, check the account vs a constant
     #[account()]
     pub yi_mint: Account<'info, Mint>,
     pub clock: Sysvar<'info, Clock>,
