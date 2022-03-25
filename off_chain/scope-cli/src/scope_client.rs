@@ -3,7 +3,7 @@ use std::str::FromStr;
 
 use anchor_client::solana_client::rpc_client::RpcClient;
 use anchor_client::{Client, Program};
-use anchor_spl::token::{Mint, Token, TokenAccount};
+use anchor_spl::token::{Mint, TokenAccount};
 
 use solana_sdk::clock;
 use solana_sdk::{
@@ -15,7 +15,6 @@ use anyhow::{anyhow, bail, Context, Result};
 
 use scope::{accounts, instruction, Configuration, OracleMappings, OraclePrices, PriceType};
 use tracing::{debug, error, event, info, span, trace, warn, Level};
-use scope::ScopeError::MathOverflow;
 
 use crate::config::{TokenConf, TokenConfList};
 use crate::utils::{find_data_address, get_clock, price_to_f64};
@@ -327,7 +326,7 @@ impl ScopeClient {
             .checked_div(yi_mint_supply.into()).unwrap().try_into().unwrap();
         let old_price = yi_price.value;
         if new_price != old_price {
-            self.ix_refresh_yi_token_price(yi_idx.try_into()?);
+            self.ix_refresh_yi_token_price(yi_idx.try_into()?)?;
             info!("Prices for Yi Token updated successfully at yi_idx {}", yi_idx);
         }
         else {
@@ -499,11 +498,6 @@ impl ScopeClient {
 
     #[tracing::instrument(skip(self))]
     pub fn ix_refresh_yi_token_price(&self, token: u64) -> Result<()> {
-        let oracle_account = self
-            .oracle_mappings
-            .get(usize::try_from(token)?)
-            .ok_or(anyhow!("Out of range token {token}"))?
-            .unwrap_or_default();
         let refresh_account = accounts::RefreshYiToken {
             oracle_prices: self.oracle_prices_acc,
             oracle_mappings: self.oracle_mappings_acc,
