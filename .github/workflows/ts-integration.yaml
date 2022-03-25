@@ -107,7 +107,7 @@ jobs:
         run: |
           export PATH="/home/runner/.local/share/solana/install/active_release/bin:$PATH"
           export CLUSTER=localnet
-          make test-validator
+          make test-validator > validator.logs &2>1 &
           sleep 50
           make airdrop
           make deploy
