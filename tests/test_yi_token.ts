@@ -95,7 +95,7 @@ const initialTokens = [
     },
 ]
 
-const PRICE_FEED = "oracle_test_feed"
+const PRICE_FEED = "yi_test_feed"
 const MAX_NB_TOKENS_IN_ONE_UPDATE = 27;
 
 const YI_UNDERLYING_TOKENS = new PublicKey('EDLcx5J9aBkA6a7V5aQLqb8nnBByNhhNn8Qr9QksHobc');
@@ -220,7 +220,11 @@ describe("Yi Scope tests", () => {
 
     it('test_update_Yi_price', async () => {
         let oracle = await program.account.oraclePrices.fetch(oracleAccount);
-        checkOraclePrice(Tokens.STSOLUST, oracle);
+        oracle = await program.account.oraclePrices.fetch(oracleAccount);
+        let price = oracle.prices[10].price;
+        let value = price.value.toNumber();
+        let expo = price.exp.toNumber();
+        let in_decimal_before = new Decimal(value).mul((new Decimal(10)).pow(new Decimal(-expo)));
         console.log("Calling Refresh now");
         await program.rpc.refreshYiToken(
             new BN(Tokens.STSOLUST),
@@ -234,9 +238,11 @@ describe("Yi Scope tests", () => {
                 },
                 signers: []
             });
-        {
-            let oracle = await program.account.oraclePrices.fetch(oracleAccount);
-            checkOraclePrice(Tokens.STSOLUST, oracle);
-        }
+        oracle = await program.account.oraclePrices.fetch(oracleAccount);
+        price = oracle.prices[10].price;
+        value = price.value.toNumber();
+        expo = price.exp.toNumber();
+        let in_decimal_after = new Decimal(value).mul((new Decimal(10)).pow(new Decimal(-expo)));
+        expect(in_decimal_after.toNumber()).not.eq(in_decimal_before.toNumber());
     });
 });

@@ -22,6 +22,7 @@ mod scope {
         handler_initialize::process(ctx, feed_name)
     }
 
+    //This handler only works for Pyth type tokens
     pub fn refresh_one_price(ctx: Context<RefreshOne>, token: u64) -> Result<()> {
         let token: usize = token
             .try_into()
@@ -121,7 +122,8 @@ pub enum ScopeError {
 
     #[msg("The token index received is out of range")]
     BadTokenNb,
-    //TODO
+
+    #[msg("The token type received is invalid")]
     BadTokenType,
 }
 
