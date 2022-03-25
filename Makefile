@@ -118,6 +118,9 @@ deploy-int: $(PROGRAM_SO) $(PROGRAM_KEYPAIR) $(OWNER_KEYPAIR)
 listen:
 > solana logs -u $(URL) ${SCOPE_PROGRAM_ID}
 
+test-validator:
+>@ solana-test-validator -r --clone EDLcx5J9aBkA6a7V5aQLqb8nnBByNhhNn8Qr9QksHobc --account JAa3gQySiTi8tH3dpkvgztJWHQC1vGXr5m6SQ9LEM55T deps/solustscope.json > validator.logs 2>&1 &
+
 test: test-rust test-ts
 
 test-rust:

@@ -107,7 +107,7 @@ jobs:
         run: |
           export PATH="/home/runner/.local/share/solana/install/active_release/bin:$PATH"
           export CLUSTER=localnet
-          solana-test-validator -r --url mainnet-beta --clone EDLcx5J9aBkA6a7V5aQLqb8nnBByNhhNn8Qr9QksHobc --account JAa3gQySiTi8tH3dpkvgztJWHQC1vGXr5m6SQ9LEM55T ./tests/assets/solustscope.json > validator.logs 2>&1 &
+          make test-validator
           sleep 50
           make airdrop
           make deploy
