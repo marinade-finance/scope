@@ -24,21 +24,6 @@ import {TOKEN_PROGRAM_ID} from "@project-serum/serum/lib/token-instructions";
 
 chai.use(chaiDecimalJs(Decimal));
 
-
-enum Tokens {
-    SOL = 0,
-    ETH,
-    BTC,
-    SRM,
-    RAY,
-    FTT,
-    MSOL,
-    UST,
-    BNB,
-    AVAX,
-    STSOLUST
-}
-
 let tokenList = [
     {
         price: new Decimal('228.41550900'),
@@ -127,10 +112,7 @@ function checkAllOraclePrices(oraclePrices: any) {
         let value = price.value.toNumber();
         let expo = price.exp.toNumber();
         let in_decimal = new Decimal(value).mul((new Decimal(10)).pow(new Decimal(-expo)));
-        if (idx == 10) {
-            console.log("yi price ", tokenData.price);
-        }
-        else {
+        if (idx != 10) {
             expect(in_decimal).decimal.eq(tokenData.price);
         }
     });
@@ -301,7 +283,7 @@ describe("Scope crank bot tests", () => {
         await scopeBot.nextLogMatches((c) => c.includes('Prices refreshed successfully'), 10000);
         await scopeBot.nextLogMatches((c) => c.includes('Price for Yi Token has not changed'), 10000);
 
-        await sleep(2000);// One block await
+        await sleep(3000);
         oracle = await program.account.oraclePrices.fetch(oracleAccount);
         price = oracle.prices[getRevisedIndex(10)].price;
         value = price.value.toNumber();

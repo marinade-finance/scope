@@ -327,13 +327,13 @@ impl ScopeClient {
         let old_price = yi_price.value;
         if new_price != old_price {
             self.ix_refresh_yi_token_price(yi_idx.try_into()?)?;
-            info!("Prices for Yi Token updated successfully at yi_idx {}", yi_idx);
+            trace!("Prices for Yi Token updated successfully at yi_idx {}", yi_idx);
         }
         else {
-            info!("Price for Yi Token has not changed");
+            trace!("Price for Yi Token has not changed");
         }
 
-        info!("Check-update for Yi Token ran successfully");
+        trace!("Check-update for Yi Token ran successfully");
         Ok(())
     }
 
@@ -346,7 +346,7 @@ impl ScopeClient {
             .iter()
             .zip(self.oracle_mappings)
             .zip(self.token_price_type)
-            .filter(|((_, _), price_type)| price_type != PriceType::YiToken)
+            .filter(|((_, _), price_type)| *price_type != PriceType::YiToken)
             .filter_map(|((dp, mapping_op), _)| mapping_op.map(|_| dp.last_updated_slot))
             .min()
             .unwrap_or(0);
@@ -510,12 +510,12 @@ impl ScopeClient {
 
         let request = self.program.request();
 
-        request
+        let tx = request
             .accounts(refresh_account)
             .args(instruction::RefreshYiToken { token })
             .send()?;
 
-        info!("Price refreshed successfully");
+        info!(signature = %tx, "Price refreshed successfully");
 
         Ok(())
     }

@@ -3,7 +3,6 @@ use anchor_lang::solana_program::clock;
 use anchor_spl::token::{TokenAccount, Mint};
 use num_traits::ToPrimitive;
 use crate::{DatedPrice, Price, ScopeError};
-use crate::ScopeError::MathOverflow;
 use crate::utils::PriceType;
 
 pub fn get_price(price_type: PriceType,
@@ -17,8 +16,8 @@ pub fn get_price(price_type: PriceType,
     let yi_underlying_tokens_amount = yi_underlying_tokens.amount;
     let yi_mint_supply = yi_mint.supply;
     let price_amount = 100_000_000u128
-        .checked_mul(yi_underlying_tokens_amount.into()).ok_or(MathOverflow)?
-        .checked_div(yi_mint_supply.into()).ok_or(MathOverflow)?.to_u64().ok_or(MathOverflow)?;
+        .checked_mul(yi_underlying_tokens_amount.into()).ok_or(ScopeError::MathOverflow)?
+        .checked_div(yi_mint_supply.into()).ok_or(ScopeError::MathOverflow)?.to_u64().ok_or(ScopeError::MathOverflow)?;
     let dated_price = DatedPrice {
         price: Price {
             value: price_amount,
