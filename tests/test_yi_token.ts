@@ -216,7 +216,7 @@ describe("Yi Scope tests", () => {
         let value = price.value.toNumber();
         let expo = price.exp.toNumber();
         let in_decimal_before = new Decimal(value).mul((new Decimal(10)).pow(new Decimal(-expo)));
-        console.log("Calling Refresh now");
+        console.log("Calling Refresh now.");
         await program.rpc.refreshYiToken(
             new BN(Tokens.STSOLUST),
             {
