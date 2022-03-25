@@ -93,8 +93,6 @@ jobs:
           export PATH="/home/runner/.local/share/solana/install/active_release/bin:$PATH"
           solana --version
           solana-keygen new --no-bip39-passphrase -s
-          mkdir -p keys/localnet
-          solana-keygen new --no-bip39-passphrase -s -o keys/localnet/owner.json
       - name: yarn install
         run: |
           export PATH="/home/runner/.local/share/solana/install/active_release/bin:$PATH"
