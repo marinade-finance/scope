@@ -217,13 +217,15 @@ fn crank(
             error!("Error while refreshing prices {:?}", e);
         }
 
+        if let Err(e) = scope.check_refresh_yi_token() {
+            error!("Error while refreshing yi token prices {:?}", e);
+        }
+
         let elapsed = start.elapsed();
         trace!("last refresh duration was {:?}", elapsed);
 
         let oldest_age = scope.get_oldest_price_age()?;
         trace!(oldest_age);
-
-        scope.check_refresh_yi_token()?;
 
         if refresh_interval_slot > oldest_age {
             let sleep_ms = (refresh_interval_slot - oldest_age) * clock::DEFAULT_MS_PER_SLOT;

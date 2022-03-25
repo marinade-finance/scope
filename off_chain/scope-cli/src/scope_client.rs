@@ -344,8 +344,10 @@ impl ScopeClient {
         let oldest_price_slot = oracle_prices
             .prices
             .iter()
-            .zip(self.oracle_mappings) // Iterate with mappings to ensure the price is usable
-            .filter_map(|(dp, mapping_op)| mapping_op.map(|_| dp.last_updated_slot))
+            .zip(self.oracle_mappings)
+            .zip(self.token_price_type)
+            .filter(|((_, _), price_type)| price_type != PriceType::YiToken)
+            .filter_map(|((dp, mapping_op), _)| mapping_op.map(|_| dp.last_updated_slot))
             .min()
             .unwrap_or(0);
 
