@@ -147,7 +147,7 @@ impl ScopeClient {
             let rem_price_type = onchain_price_type_mapping[token];
             // Update remote in case of difference
             let local_mapping_pk = local_mapping.unwrap_or_default();
-            let loc_price_type_u8 = *local_price_type as u8;
+            let local_price_type:u8 = local_price_type.into();
             if rem_mapping != local_mapping_pk || rem_price_type != loc_price_type_u8 {
                 self.ix_update_mapping(&local_mapping_pk, token.try_into()?, loc_price_type_u8)?;
             }
