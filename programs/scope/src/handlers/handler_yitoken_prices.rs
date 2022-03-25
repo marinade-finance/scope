@@ -1,12 +1,11 @@
 use anchor_lang::prelude::*;
-use std::str::FromStr;
 use crate::{ScopeError};
 use crate::utils::{PriceType};
 use crate::utils::yitoken::get_price;
 use anchor_spl::token::{Mint, TokenAccount};
 
-static YI_MINT_ACC_STR: &str = "CGczF9uYdSVXmSr9swMafhF1ktHsi6ygcgTHWL71XNZ9";
-static YI_UNDERLYING_TOKEN_ACC_STR: &str = "EDLcx5J9aBkA6a7V5aQLqb8nnBByNhhNn8Qr9QksHobc";
+const YI_MINT_ACCOUNT: Pubkey = Pubkey::new_from_array([ 0xa7, 0x70, 0xf5, 0x7b, 0xa9, 0x0c, 0x5d, 0xf7, 0x42, 0x46, 0x3b, 0x34, 0xd3, 0x71, 0x97, 0x15, 0xe7, 0x0d, 0x62, 0x98, 0xce, 0xc1, 0x11, 0x8a, 0xe6, 0x4e, 0x03, 0x36, 0x4d, 0xe2, 0xec, 0xec ]);
+const YI_UNDERLYING_TOKEN_ACCOUNT: Pubkey = Pubkey::new_from_array([ 0xc4, 0x51, 0x15, 0x7d, 0xe9, 0xe3, 0xf9, 0x72, 0x93, 0xe7, 0x1a, 0xf0, 0x65, 0x3b, 0x33, 0xfe, 0xcf, 0x01, 0xa1, 0x2b, 0xd9, 0xc3, 0x5e, 0xe3, 0x18, 0xda, 0x19, 0x14, 0xba, 0xdf, 0xb4, 0x8f ]);
 
 #[derive(Accounts)]
 pub struct RefreshYiToken<'info> {
@@ -24,14 +23,12 @@ pub struct RefreshYiToken<'info> {
 }
 
 pub fn refresh_yi_token(ctx: Context<RefreshYiToken>, token: usize) -> Result<()> {
-    let yi_mint_account: Pubkey = Pubkey::from_str(YI_MINT_ACC_STR).unwrap();
-    let yi_underlying_token_account: Pubkey = Pubkey::from_str(YI_UNDERLYING_TOKEN_ACC_STR).unwrap();
     let oracle_mappings = ctx.accounts.oracle_mappings.load()?;
     let price_type: PriceType = oracle_mappings.price_types[token]
         .try_into()
         .map_err(|_| ScopeError::BadTokenType)?;
 
-    if yi_underlying_token_account != ctx.accounts.yi_underlying_tokens.key() || yi_mint_account != ctx.accounts.yi_mint.key() {
+    if YI_UNDERLYING_TOKEN_ACCOUNT != ctx.accounts.yi_underlying_tokens.key() || YI_MINT_ACCOUNT != ctx.accounts.yi_mint.key() {
         return Err(ScopeError::UnexpectedAccount.into());
     }
 
