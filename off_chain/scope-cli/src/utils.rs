@@ -35,4 +35,3 @@ pub fn get_clock(rpc: &RpcClient) -> Result<Clock> {
     Ok(clock)
 }
 
-// Get yi token price off chain in the bot to compare to the stored price
