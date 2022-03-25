@@ -155,7 +155,7 @@ impl ScopeClient {
         Ok(())
     }
 
-    /// Update the local oracle mapping from the on-chain version.
+    /// Update the local oracle mapping from the on-chain version
     pub fn download_oracle_mapping(&mut self) -> Result<()> {
         let onchain_oracle_mapping = self.get_program_mapping()?;
         let onchain_mapping = onchain_oracle_mapping.price_info_accounts;
