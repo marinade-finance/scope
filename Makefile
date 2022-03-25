@@ -61,6 +61,7 @@ SCOPE_CLI := target/debug/scope
 
 SCOPE_PROGRAM_ID != solana-keygen pubkey $(SCOPE_PROGRAM_KEYPAIR)
 FAKE_PYTH_PROGRAM_ID != solana-keygen pubkey $(FAKE_PYTH_PROGRAM_KEYPAIR)
+PROGRAM_DEPLOY_ACCOUNT != solana-keygen pubkey $(OWNER_KEYPAIR)
 
 .PHONY: deploy run listen deploy deploy-int airdrop test test-rust test-ts init check-env
 
