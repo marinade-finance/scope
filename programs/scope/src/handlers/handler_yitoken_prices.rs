@@ -1,10 +1,9 @@
 use anchor_lang::prelude::*;
 use std::str::FromStr;
-use crate::{DatedPrice, Price, ScopeError};
-use crate::utils::{PriceType, yitoken};
+use crate::{ScopeError};
+use crate::utils::{PriceType};
 use crate::utils::yitoken::get_price;
-use anchor_spl::token::{Mint, Token, TokenAccount};
-use crate::ScopeError::MathOverflow;
+use anchor_spl::token::{Mint, TokenAccount};
 
 static YI_MINT_ACC_STR: &str = "CGczF9uYdSVXmSr9swMafhF1ktHsi6ygcgTHWL71XNZ9";
 static YI_UNDERLYING_TOKEN_ACC_STR: &str = "EDLcx5J9aBkA6a7V5aQLqb8nnBByNhhNn8Qr9QksHobc";
@@ -25,14 +24,14 @@ pub struct RefreshYiToken<'info> {
 }
 
 pub fn refresh_yi_token(ctx: Context<RefreshYiToken>, token: usize) -> Result<()> {
-    let YI_MINT_ACCOUNT: Pubkey = Pubkey::from_str(YI_MINT_ACC_STR).unwrap();
-    let YI_UNDERLYING_TOKEN_ACCOUNT: Pubkey = Pubkey::from_str(YI_UNDERLYING_TOKEN_ACC_STR).unwrap();
+    let yi_mint_account: Pubkey = Pubkey::from_str(YI_MINT_ACC_STR).unwrap();
+    let yi_underlying_token_account: Pubkey = Pubkey::from_str(YI_UNDERLYING_TOKEN_ACC_STR).unwrap();
     let oracle_mappings = ctx.accounts.oracle_mappings.load()?;
     let price_type: PriceType = oracle_mappings.price_types[token]
         .try_into()
         .map_err(|_| ScopeError::BadTokenType)?;
 
-    if YI_UNDERLYING_TOKEN_ACCOUNT != ctx.accounts.yi_underlying_tokens.key() || YI_MINT_ACCOUNT != ctx.accounts.yi_mint.key() {
+    if yi_underlying_token_account != ctx.accounts.yi_underlying_tokens.key() || yi_mint_account != ctx.accounts.yi_mint.key() {
         return Err(ScopeError::UnexpectedAccount.into());
     }
 

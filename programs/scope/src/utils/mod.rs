@@ -26,7 +26,6 @@ pub enum PriceType {
 pub fn get_price(
     price_type: PriceType,
     price_acc: &AccountInfo,
-    token: usize,
 ) -> crate::Result<DatedPrice> {
     match price_type {
         PriceType::Pyth => pyth::get_price(price_acc),
