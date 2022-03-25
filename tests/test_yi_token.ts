@@ -101,15 +101,6 @@ const MAX_NB_TOKENS_IN_ONE_UPDATE = 27;
 const YI_UNDERLYING_TOKENS = new PublicKey('EDLcx5J9aBkA6a7V5aQLqb8nnBByNhhNn8Qr9QksHobc');
 const YI_MINT = new PublicKey('CGczF9uYdSVXmSr9swMafhF1ktHsi6ygcgTHWL71XNZ9');
 
-function checkOraclePrice(token: number, oraclePrices: any) {
-    let price = oraclePrices.prices[token].price;
-    let value = price.value.toNumber();
-    let expo = price.exp.toNumber();
-    let in_decimal = new Decimal(value).mul((new Decimal(10)).pow(new Decimal(-expo)))
-    console.log(in_decimal);
-    // expect(in_decimal).decimal.eq(initialTokens[token].price);
-}
-
 describe("Yi Scope tests", () => {
     const keypair_acc = Uint8Array.from(Buffer.from(JSON.parse(require('fs').readFileSync(`./keys/${global.getCluster()}/owner.json`))));
     const admin = Keypair.fromSecretKey(keypair_acc);
