@@ -35,6 +35,7 @@ mod scope {
         handler_yitoken_prices::refresh_yi_token(ctx, token)
     }
 
+    /// This handler will reject the refresh of yi tokens
     pub fn refresh_price_list(ctx: Context<RefreshList>, tokens: Vec<u16>) -> Result<()> {
         handler_refresh_prices::refresh_price_list(ctx, &tokens)
     }
