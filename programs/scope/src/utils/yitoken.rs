@@ -23,7 +23,7 @@ pub fn get_price(price_type: PriceType,
             value: price_amount,
             exp: 8,
         },
-        last_updated_slot: clock_slot, //todo: fix this!!!
+        last_updated_slot: clock_slot,
         ..Default::default()
     };
     Ok(dated_price)
