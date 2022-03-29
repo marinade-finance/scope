@@ -515,7 +515,7 @@ impl ScopeClient {
             .args(instruction::RefreshYiToken { token })
             .send()?;
 
-        info!(signature = %tx, "Price refreshed successfully");
+        info!(signature = %tx, "Yi Token price refreshed successfully");
 
         Ok(())
     }
