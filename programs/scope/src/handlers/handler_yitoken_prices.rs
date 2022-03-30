@@ -14,10 +14,10 @@ pub struct RefreshYiToken<'info> {
     #[account()]
     pub oracle_mappings: AccountLoader<'info, crate::OracleMappings>,
     /// CHECK: In ix, check the account vs a constant
-    #[account(constraint = YI_UNDERLYING_TOKEN_ACCOUNT == accounts.yi_underlying_tokens.key() @ ScopeError::UnexpectedAccount)]
+    #[account()]
     pub yi_underlying_tokens: Account<'info, TokenAccount>,
     /// CHECK: In ix, check the account vs a constant
-    #[account(constraint = YI_MINT_ACCOUNT == accounts.yi_mint.key() @ ScopeError::UnexpectedAccount)]
+    #[account()]
     pub yi_mint: Account<'info, Mint>,
     pub clock: Sysvar<'info, Clock>,
 }
