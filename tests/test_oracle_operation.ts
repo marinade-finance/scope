@@ -22,6 +22,12 @@ enum Tokens {
     MSOL
 }
 
+enum PriceType {
+    Pyth = 0,
+    Switchboard = 1,
+    YiToken = 2,
+}
+
 const initialTokens = [
     {
         price: new Decimal('228.41550900'),
@@ -166,7 +172,7 @@ describe("Scope tests", () => {
             console.log(`Set mapping of ${initialTokens[idx].ticker}`)
 
             await program.rpc.updateMapping(
-                new BN(idx), 0,
+                new BN(idx), PriceType.Pyth,
                 {
                     accounts: {
                         admin: admin.publicKey,
@@ -227,7 +233,7 @@ describe("Scope tests", () => {
         await Promise.all(fakePythAccounts2.map(async (fakePythAccount, idx): Promise<any> => {
 
             await program.rpc.updateMapping(
-                new BN(global.MAX_NB_TOKENS - idx - 1), 0,
+                new BN(global.MAX_NB_TOKENS - idx - 1), PriceType.Pyth,
                 {
                     accounts: {
                         admin: admin.publicKey,
