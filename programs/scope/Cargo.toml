@@ -11,13 +11,16 @@ name = "scope"
 [features]
 no-entrypoint = []
 cpi = ["no-entrypoint"]
+skip_price_validation = []
+
+# If none of the following is set, one will be selected based on env $CLUSTER variable
+# If $CLUSTER is not set either, default will be mainnet
+devnet = ["skip_price_validation"]
+localnet = []
+mainnet = []
 
 [dependencies]
-anchor-lang = "0.22.0"
+anchor-lang = "0.20.1"
 num_enum = "0.5.6"
 pyth-client = "0.2.2"
-
-[build-dependencies]
-serde = "1.0.136"
-serde_json = "1.0.79"
-anyhow = "1.0.54"
+cfg-if = "1.0.0"
