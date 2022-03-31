@@ -24,7 +24,7 @@ pub struct RefreshList<'info> {
     // Note: use remaining accounts as price accounts
 }
 
-pub fn refresh_one_price(ctx: Context<RefreshOne>, token: usize) -> Result<()> {
+pub fn refresh_one_price(ctx: Context<RefreshOne>, token: usize) -> ProgramResult {
     let oracle_mappings = ctx.accounts.oracle_mappings.load()?;
     let pyth_price_info = &ctx.accounts.pyth_price_info;
 
@@ -46,7 +46,7 @@ pub fn refresh_one_price(ctx: Context<RefreshOne>, token: usize) -> Result<()> {
     Ok(())
 }
 
-pub fn refresh_price_list(ctx: Context<RefreshList>, tokens: &[u16]) -> Result<()> {
+pub fn refresh_price_list(ctx: Context<RefreshList>, tokens: &[u16]) -> ProgramResult {
     let oracle_mappings = &ctx.accounts.oracle_mappings.load()?;
     let oracle_prices = &mut ctx.accounts.oracle_prices.load_mut()?.prices;
 
@@ -90,4 +90,3 @@ pub fn refresh_price_list(ctx: Context<RefreshList>, tokens: &[u16]) -> Result<(
 
     Ok(())
 }
-

@@ -2,14 +2,14 @@ pub mod pyth;
 pub mod yitoken;
 
 use crate::{DatedPrice, ScopeError};
-use anchor_lang::prelude::{error, AccountInfo, Context, Result};
+use anchor_lang::prelude::{AccountInfo, Context, ProgramResult};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use serde::{Deserialize, Serialize};
 
-pub fn check_context<T>(ctx: &Context<T>) -> Result<()> {
+pub fn check_context<T>(ctx: &Context<T>) -> ProgramResult {
     //make sure there are no extra accounts
     if !ctx.remaining_accounts.is_empty() {
-        return Err(error!(ScopeError::UnexpectedAccount));
+        return Err(ScopeError::UnexpectedAccount.into());
     }
 
     Ok(())

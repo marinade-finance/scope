@@ -13,7 +13,7 @@ use solana_sdk::{
 
 use anyhow::{anyhow, bail, Context, Result};
 
-use scope::{accounts, instruction, Configuration, OracleMappings, OraclePrices, PriceType};
+use scope::{accounts, instruction, Configuration, OracleMappings, OraclePrices, utils::PriceType};
 use tracing::{debug, error, event, info, span, trace, warn, Level};
 
 use crate::config::{TokenConf, TokenConfList};
@@ -37,7 +37,7 @@ pub struct ScopeClient {
     oracle_mappings_acc: Pubkey,
     oracle_mappings: [Option<Pubkey>; scope::MAX_ENTRIES],
     token_pairs: [String; scope::MAX_ENTRIES],
-    token_price_type: [scope::PriceType; scope::MAX_ENTRIES],
+    token_price_type: [scope::utils::PriceType; scope::MAX_ENTRIES],
     yi_underlying_token_account: Pubkey,
     yi_mint: Pubkey,
 }

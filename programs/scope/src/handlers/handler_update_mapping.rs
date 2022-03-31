@@ -1,6 +1,7 @@
 use crate::program::Scope;
 use crate::utils::{check_context, pyth};
-use crate::{OracleMappings, PriceType, ScopeError};
+use crate::{OracleMappings, ScopeError, utils};
+use utils::PriceType;
 use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
@@ -16,7 +17,7 @@ pub struct UpdateOracleMapping<'info> {
     pub pyth_price_info: AccountInfo<'info>,
 }
 
-pub fn process(ctx: Context<UpdateOracleMapping>, token: usize, price_type: u8) -> Result<()> {
+pub fn process(ctx: Context<UpdateOracleMapping>, token: usize, price_type: u8) -> ProgramResult {
     check_context(&ctx)?;
 
     let new_price_pubkey = ctx.accounts.pyth_price_info.key();

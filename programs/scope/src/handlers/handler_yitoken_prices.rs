@@ -22,7 +22,7 @@ pub struct RefreshYiToken<'info> {
     pub clock: Sysvar<'info, Clock>,
 }
 
-pub fn refresh_yi_token(ctx: Context<RefreshYiToken>, token: usize) -> Result<()> {
+pub fn refresh_yi_token(ctx: Context<RefreshYiToken>, token: usize) -> ProgramResult {
     let oracle_mappings = ctx.accounts.oracle_mappings.load()?;
     let price_type: PriceType = oracle_mappings.price_types[token]
         .try_into()

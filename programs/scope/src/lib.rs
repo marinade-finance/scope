@@ -5,42 +5,42 @@ pub mod handlers;
 pub mod utils;
 
 pub use handlers::*;
-pub use utils::*;
+pub mod program_id;
 
-const PROGRAM_ID: Pubkey = Pubkey::new_from_array(include!(concat!(env!("OUT_DIR"), "/pubkey.rs")));
+pub use program_id::PROGRAM_ID;
 
 declare_id!(PROGRAM_ID);
 
 pub const MAX_ENTRIES: usize = 512;
 
 #[program]
-mod scope {
+pub mod scope {
 
     use super::*;
 
-    pub fn initialize(ctx: Context<Initialize>, feed_name: String) -> Result<()> {
+    pub fn initialize(ctx: Context<Initialize>, feed_name: String) -> ProgramResult {
         handler_initialize::process(ctx, feed_name)
     }
 
     //This handler only works for Pyth type tokens
-    pub fn refresh_one_price(ctx: Context<RefreshOne>, token: u64) -> Result<()> {
+    pub fn refresh_one_price(ctx: Context<RefreshOne>, token: u64) -> ProgramResult {
         let token: usize = token
             .try_into()
             .map_err(|_| ScopeError::OutOfRangeIntegralConversion)?;
         handler_refresh_prices::refresh_one_price(ctx, token)
     }
 
-    pub fn refresh_yi_token(ctx: Context<RefreshYiToken>, token: u64) -> Result<()> {
+    pub fn refresh_yi_token(ctx: Context<RefreshYiToken>, token: u64) -> ProgramResult {
         let token: usize = token.try_into().map_err(|_| ScopeError::OutOfRangeIntegralConversion)?;
         handler_yitoken_prices::refresh_yi_token(ctx, token)
     }
 
     /// This handler will reject the refresh of yi tokens
-    pub fn refresh_price_list(ctx: Context<RefreshList>, tokens: Vec<u16>) -> Result<()> {
+    pub fn refresh_price_list(ctx: Context<RefreshList>, tokens: Vec<u16>) -> ProgramResult {
         handler_refresh_prices::refresh_price_list(ctx, &tokens)
     }
 
-    pub fn update_mapping(ctx: Context<UpdateOracleMapping>, token: u64, price_type: u8) -> Result<()> {
+    pub fn update_mapping(ctx: Context<UpdateOracleMapping>, token: u64, price_type: u8) -> ProgramResult {
         let token: usize = token
             .try_into()
             .map_err(|_| ScopeError::OutOfRangeIntegralConversion)?;
@@ -97,7 +97,7 @@ pub struct Configuration {
     _padding: [u64; 1267],
 }
 
-#[error_code]
+#[error]
 #[derive(PartialEq, Eq)]
 pub enum ScopeError {
     #[msg("Integer overflow")]
