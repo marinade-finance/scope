@@ -1,6 +1,7 @@
 use crate::program::Scope;
 use crate::utils::{check_context, pyth};
-use crate::OracleMappings;
+use crate::{OracleMappings, ScopeError, utils};
+use utils::PriceType;
 use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
@@ -16,7 +17,7 @@ pub struct UpdateOracleMapping<'info> {
     pub pyth_price_info: AccountInfo<'info>,
 }
 
-pub fn process(ctx: Context<UpdateOracleMapping>, token: usize) -> ProgramResult {
+pub fn process(ctx: Context<UpdateOracleMapping>, token: usize, price_type: u8) -> ProgramResult {
     check_context(&ctx)?;
 
     let new_price_pubkey = ctx.accounts.pyth_price_info.key();
@@ -33,9 +34,12 @@ pub fn process(ctx: Context<UpdateOracleMapping>, token: usize) -> ProgramResult
     let pyth_price = pyth_client::cast::<pyth_client::Price>(&pyth_price_data);
 
     pyth::validate_pyth_price(pyth_price)?;
-
     // Every check succeeded, replace current with new
     *current_price_pubkey = new_price_pubkey;
+
+    //let stored_price_type = &mut oracle_mappings.price_types[token];
+    let _price_type: PriceType = price_type.try_into().map_err(|_| ScopeError::BadTokenType)?;
+    oracle_mappings.price_types[token] = price_type;
 
     Ok(())
 }

@@ -217,6 +217,10 @@ fn crank(
             error!("Error while refreshing prices {:?}", e);
         }
 
+        if let Err(e) = scope.check_refresh_yi_token() {
+            error!("Error while refreshing yi token prices {:?}", e);
+        }
+
         let elapsed = start.elapsed();
         trace!("last refresh duration was {:?}", elapsed);
 

@@ -19,7 +19,11 @@ enum Tokens {
     SRM,
     RAY,
     FTT,
-    MSOL
+    MSOL,
+    UST,
+    BNB,
+    AVAX,
+    STSOLUST
 }
 
 enum PriceType {
@@ -32,53 +36,78 @@ const initialTokens = [
     {
         price: new Decimal('228.41550900'),
         ticker: Buffer.from('SOL'),
-        decimals: 8
+        decimals: 8,
+        priceType: PriceType.Pyth
     },
     {
         price: new Decimal('4726.59830000'),
         ticker: Buffer.from('ETH'),
-        decimals: 8
+        decimals: 8,
+        priceType: PriceType.Pyth
     },
     {
         price: new Decimal('64622.36900000'),
         ticker: Buffer.from('BTC'),
-        decimals: 8
+        decimals: 8,
+        priceType: PriceType.Pyth
     },
     {
         price: new Decimal('7.06975570'),
         ticker: Buffer.from('SRM'),
-        decimals: 8
+        decimals: 8,
+        priceType: PriceType.Pyth
     },
     {
         price: new Decimal('11.10038050'),
         ticker: Buffer.from('RAY'),
-        decimals: 8
+        decimals: 8,
+        priceType: PriceType.Pyth
     },
     {
         price: new Decimal('59.17104600'),
         ticker: Buffer.from('FTT'),
-        decimals: 8
+        decimals: 8,
+        priceType: PriceType.Pyth
     },
     {
         price: new Decimal('253.41550900'),
         ticker: Buffer.from('MSOL'),
-        decimals: 8
+        decimals: 8,
+        priceType: PriceType.Pyth
+    },
+    {
+        price: new Decimal('228.415509'),
+        ticker: Buffer.from('UST'),
+        decimals: 8,
+        priceType: PriceType.Pyth
+    },
+    {
+        price: new Decimal('11.10038050'),
+        ticker: Buffer.from('BNB'),
+        decimals: 8,
+        priceType: PriceType.Pyth
+    },
+    {
+        price: new Decimal('59.17104600'),
+        ticker: Buffer.from('AVAX'),
+        decimals: 8,
+        priceType: PriceType.Pyth
+    },
+    {
+        price: new Decimal('253.41550900'),
+        ticker: Buffer.from('STSOLUST'),
+        decimals: 8,
+        priceType: PriceType.YiToken
     },
 ]
 
-const PRICE_FEED = "oracle_test_feed"
+const PRICE_FEED = "yi_test_feed"
 const MAX_NB_TOKENS_IN_ONE_UPDATE = 27;
 
-function checkOraclePrice(token: number, oraclePrices: any) {
-    console.log(`Check ${initialTokens[token].ticker} price`)
-    let price = oraclePrices.prices[token].price;
-    let value = price.value.toNumber();
-    let expo = price.exp.toNumber();
-    let in_decimal = new Decimal(value).mul((new Decimal(10)).pow(new Decimal(-expo)))
-    expect(in_decimal).decimal.eq(initialTokens[token].price);
-}
+const YI_UNDERLYING_TOKENS = new PublicKey('EDLcx5J9aBkA6a7V5aQLqb8nnBByNhhNn8Qr9QksHobc');
+const YI_MINT = new PublicKey('CGczF9uYdSVXmSr9swMafhF1ktHsi6ygcgTHWL71XNZ9');
 
-describe("Scope tests", () => {
+describe("Yi Scope tests", () => {
     const keypair_acc = Uint8Array.from(Buffer.from(JSON.parse(require('fs').readFileSync(`./keys/${global.getCluster()}/owner.json`))));
     const admin = Keypair.fromSecretKey(keypair_acc);
 
@@ -172,7 +201,7 @@ describe("Scope tests", () => {
             console.log(`Set mapping of ${initialTokens[idx].ticker}`)
 
             await program.rpc.updateMapping(
-                new BN(idx), PriceType.Pyth,
+                new BN(idx), initialTokens[idx].priceType,
                 {
                     accounts: {
                         admin: admin.publicKey,
@@ -186,87 +215,31 @@ describe("Scope tests", () => {
         }));
     });
 
-    it('test_update_srm_price', async () => {
-        await program.rpc.refreshOnePrice(
-            new BN(Tokens.SRM),
+    it('test_update_Yi_price', async () => {
+        let oracle = await program.account.oraclePrices.fetch(oracleAccount);
+        oracle = await program.account.oraclePrices.fetch(oracleAccount);
+        let price = oracle.prices[10].price;
+        let value = price.value.toNumber();
+        let expo = price.exp.toNumber();
+        let in_decimal_before = new Decimal(value).mul((new Decimal(10)).pow(new Decimal(-expo)));
+        console.log("Calling Refresh now.");
+        await program.rpc.refreshYiToken(
+            new BN(Tokens.STSOLUST),
             {
                 accounts: {
                     oraclePrices: oracleAccount,
                     oracleMappings: oracleMappingAccount,
-                    pythPriceInfo: fakePythAccounts[Tokens.SRM],
+                    yiUnderlyingTokens: YI_UNDERLYING_TOKENS,
+                    yiMint: YI_MINT,
                     clock: SYSVAR_CLOCK_PUBKEY
                 },
                 signers: []
             });
-        {
-            let oracle = await program.account.oraclePrices.fetch(oracleAccount);
-            checkOraclePrice(Tokens.SRM, oracle);
-        }
-    });
-
-    it('test_update_price_list', async () => {
-        await program.rpc.refreshPriceList(
-            Uint16Array.from([Tokens.ETH, Tokens.RAY]),
-            {
-                accounts: {
-                    oraclePrices: oracleAccount,
-                    oracleMappings: oracleMappingAccount,
-                    clock: SYSVAR_CLOCK_PUBKEY
-                },
-                remainingAccounts: [
-                    { pubkey: fakePythAccounts[Tokens.ETH], isWritable: false, isSigner: false },
-                    { pubkey: fakePythAccounts[Tokens.RAY], isWritable: false, isSigner: false },
-                ],
-                signers: []
-            });
-        // Check the two updated accounts
-        {
-            let oracle = await program.account.oraclePrices.fetch(oracleAccount);
-            checkOraclePrice(Tokens.ETH, oracle);
-            checkOraclePrice(Tokens.RAY, oracle);
-        }
-    });
-
-    it('test_set_full_oracle_mappings', async () => {
-
-        // In this test set the tokens from the end of the mapping for limit testing
-        await Promise.all(fakePythAccounts2.map(async (fakePythAccount, idx): Promise<any> => {
-
-            await program.rpc.updateMapping(
-                new BN(global.MAX_NB_TOKENS - idx - 1), PriceType.Pyth,
-                {
-                    accounts: {
-                        admin: admin.publicKey,
-                        program: program.programId,
-                        programData: programDataAddress,
-                        oracleMappings: oracleMappingAccount,
-                        pythPriceInfo: fakePythAccount,
-                    },
-                    signers: [admin]
-                });
-        }));
-    });
-
-    it('test_update_max_list', async () => {
-        // Use the 30 first token from the second pyth accounts list
-        let tokens: number[] = [];
-        let accounts: any[] = [];
-        for (let i = 0; i < MAX_NB_TOKENS_IN_ONE_UPDATE; i++) {
-            tokens.push(global.MAX_NB_TOKENS - i - 1);
-            accounts.push({ pubkey: fakePythAccounts2[i], isWritable: false, isSigner: false })
-
-        }
-        await program.rpc.refreshPriceList(
-            Uint16Array.from(tokens),
-            {
-                accounts: {
-                    oraclePrices: oracleAccount,
-                    oracleMappings: oracleMappingAccount,
-                    clock: SYSVAR_CLOCK_PUBKEY
-                },
-                remainingAccounts: accounts,
-                signers: []
-            });
-        // No check we just want the operation to go through
+        oracle = await program.account.oraclePrices.fetch(oracleAccount);
+        price = oracle.prices[10].price;
+        value = price.value.toNumber();
+        expo = price.exp.toNumber();
+        let in_decimal_after = new Decimal(value).mul((new Decimal(10)).pow(new Decimal(-expo)));
+        expect(in_decimal_after.toNumber()).not.eq(in_decimal_before.toNumber());
     });
 });

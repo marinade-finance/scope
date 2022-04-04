@@ -8,7 +8,8 @@ node_modules
 build
 .idea/
 test-ledger/
-keys/**/*
+keys/**/*.json
 !keys/localnet/scope.json
+!keys/localnet/owner.json
 .vscode/
 CLUSTER

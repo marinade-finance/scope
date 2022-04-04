@@ -1,5 +1,15 @@
+import {Token} from "@solana/spl-token";
+
 require('dotenv').config();
-import { Keypair, PublicKey, SystemProgram, SYSVAR_CLOCK_PUBKEY, Connection, ConnectionConfig, SYSVAR_RENT_PUBKEY } from '@solana/web3.js';
+import {
+    Keypair,
+    PublicKey,
+    SystemProgram,
+    Connection,
+    ConnectionConfig,
+    SYSVAR_RENT_PUBKEY,
+    Transaction
+} from '@solana/web3.js';
 import { Provider, Program, setProvider, BN } from "@project-serum/anchor"
 import { sleep } from '@project-serum/common';
 import NodeWallet from '@project-serum/anchor/dist/cjs/nodewallet';
@@ -10,56 +20,77 @@ import { expect } from 'chai';
 import chaiDecimalJs from 'chai-decimaljs';
 import * as global from './global';
 import * as bot from './bot_utils';
+import {TOKEN_PROGRAM_ID} from "@project-serum/serum/lib/token-instructions";
 
 chai.use(chaiDecimalJs(Decimal));
-
-
-enum Tokens {
-    SOL = 0,
-    ETH,
-    BTC,
-    SRM,
-    RAY,
-    FTT,
-    MSOL
-}
 
 let tokenList = [
     {
         price: new Decimal('228.41550900'),
         ticker: Buffer.from('SOL'),
-        decimals: 8
+        decimals: 8,
+        priceType: 0
     },
     {
         price: new Decimal('4726.59830000'),
         ticker: Buffer.from('ETH'),
-        decimals: 8
+        decimals: 8,
+        priceType: 0
     },
     {
         price: new Decimal('64622.36900000'),
         ticker: Buffer.from('BTC'),
-        decimals: 8
+        decimals: 8,
+        priceType: 0
     },
     {
         price: new Decimal('7.06975570'),
         ticker: Buffer.from('SRM'),
-        decimals: 8
+        decimals: 8,
+        priceType: 0
     },
     {
         price: new Decimal('11.10038050'),
         ticker: Buffer.from('RAY'),
-        decimals: 8
+        decimals: 8,
+        priceType: 0
     },
     {
         price: new Decimal('59.17104600'),
         ticker: Buffer.from('FTT'),
-        decimals: 8
+        decimals: 8,
+        priceType: 0
     },
     {
         price: new Decimal('253.41550900'),
         ticker: Buffer.from('MSOL'),
-        decimals: 8
-    }
+        decimals: 8,
+        priceType: 0
+    },
+    {
+        price: new Decimal('228.415509'),
+        ticker: Buffer.from('UST'),
+        decimals: 8,
+        priceType: 0
+    },
+    {
+        price: new Decimal('11.10038050'),
+        ticker: Buffer.from('BNB'),
+        decimals: 8,
+        priceType: 0
+    },
+    {
+        price: new Decimal('59.17104600'),
+        ticker: Buffer.from('AVAX'),
+        decimals: 8,
+        priceType: 0
+    },
+    {
+        price: new Decimal('0.90987600'),
+        ticker: Buffer.from('STSOLUST'),
+        decimals: 8,
+        priceType: 2
+    },
 ]
 
 const PRICE_FEED = "crank_test_feed"
@@ -80,8 +111,10 @@ function checkAllOraclePrices(oraclePrices: any) {
         let price = oraclePrices.prices[getRevisedIndex(idx)].price;
         let value = price.value.toNumber();
         let expo = price.exp.toNumber();
-        let in_decimal = new Decimal(value).mul((new Decimal(10)).pow(new Decimal(-expo)))
-        expect(in_decimal).decimal.eq(tokenData.price);
+        let in_decimal = new Decimal(value).mul((new Decimal(10)).pow(new Decimal(-expo)));
+        if (idx != 10) {
+            expect(in_decimal).decimal.eq(tokenData.price);
+        }
     });
 }
 
@@ -185,9 +218,8 @@ describe("Scope crank bot tests", () => {
 
         await Promise.all(fakePythAccounts.map(async (fakePythAccount, idx): Promise<any> => {
             console.log(`Set mapping of ${tokenList[idx].ticker}`)
-
             await program.rpc.updateMapping(
-                new BN(getRevisedIndex(idx)),
+                new BN(getRevisedIndex(idx)), tokenList[idx].priceType,
                 {
                     accounts: {
                         admin: admin.publicKey,
@@ -211,7 +243,9 @@ describe("Scope crank bot tests", () => {
         await scopeBot.crank();
 
         await scopeBot.nextLogMatches((c) => c.includes('Prices refreshed successfully'), 10000);
-        await sleep(500);// One block await
+        await scopeBot.nextLogMatches((c) => c.includes('Check-update for Yi Token ran successfully'), 10000);
+
+        await sleep(1500);// One block await
 
         {
             let oracle = await program.account.oraclePrices.fetch(oracleAccount);
@@ -230,11 +264,68 @@ describe("Scope crank bot tests", () => {
             await setAllPythPrices();
 
             await scopeBot.nextLogMatches((c) => c.includes('Prices refreshed successfully'), 10000);
-            await sleep(500);// One block await
+            await sleep(2000);
 
             let oracle = await program.account.oraclePrices.fetch(oracleAccount);
             checkAllOraclePrices(oracle);
         }
+    });
+
+    it('test_yi_price_not_change', async () => {
+        let oracle = await program.account.oraclePrices.fetch(oracleAccount);
+        let price = oracle.prices[getRevisedIndex(10)].price;
+        let value = price.value.toNumber();
+        let expo = price.exp.toNumber();
+        let in_decimal_before = new Decimal(value).mul((new Decimal(10)).pow(new Decimal(-expo)));
+        scopeBot = new bot.ScopeBot(program.programId, keypair_path, PRICE_FEED);
+        await scopeBot.crank();
+
+        await scopeBot.nextLogMatches((c) => c.includes('Prices refreshed successfully'), 10000);
+        await scopeBot.nextLogMatches((c) => c.includes('Price for Yi Token has not changed'), 10000);
+
+        await sleep(3000);
+        oracle = await program.account.oraclePrices.fetch(oracleAccount);
+        price = oracle.prices[getRevisedIndex(10)].price;
+        value = price.value.toNumber();
+        expo = price.exp.toNumber();
+        let in_decimal_after = new Decimal(value).mul((new Decimal(10)).pow(new Decimal(-expo)));
+        expect(in_decimal_after.toNumber()).eq(in_decimal_before.toNumber());
+    });
+
+
+    it('test_yi_price_change', async () => {
+        let oracle = await program.account.oraclePrices.fetch(oracleAccount);
+        let price = oracle.prices[getRevisedIndex(10)].price;
+        let value = price.value.toNumber();
+        let expo = price.exp.toNumber();
+        let in_decimal_before = new Decimal(value).mul((new Decimal(10)).pow(new Decimal(-expo)));
+        let mint_amount = 10_000_000 * 1_000_000; //10 million solUST * 1 million factor (for 6 decimals)
+        const tx = new Transaction().add(
+            Token.createMintToInstruction(
+                TOKEN_PROGRAM_ID, // always TOKEN_PROGRAM_ID
+                new PublicKey('JAa3gQySiTi8tH3dpkvgztJWHQC1vGXr5m6SQ9LEM55T'), // mint
+                new PublicKey('EDLcx5J9aBkA6a7V5aQLqb8nnBByNhhNn8Qr9QksHobc'), // Yi Underlying token account
+                provider.wallet.publicKey, // mint authority
+                [], // only multisig account will use. leave it empty now.
+                mint_amount, // amount. if your decimals is 8, you mint 10^8 for 1 token.
+            )
+        );
+
+        await provider.send(tx);
+        await sleep(2000);
+        scopeBot = new bot.ScopeBot(program.programId, keypair_path, PRICE_FEED);
+        await scopeBot.crank();
+
+        await scopeBot.nextLogMatches((c) => c.includes('Prices refreshed successfully'), 10000);
+        await scopeBot.nextLogMatches((c) => c.includes('Prices for Yi Token updated successfully'), 10000);
+
+        await sleep(2000);
+        oracle = await program.account.oraclePrices.fetch(oracleAccount);
+        price = oracle.prices[getRevisedIndex(10)].price;
+        value = price.value.toNumber();
+        expo = price.exp.toNumber();
+        let in_decimal_after = new Decimal(value).mul((new Decimal(10)).pow(new Decimal(-expo)));
+        expect(in_decimal_after.toNumber()).gt(in_decimal_before.toNumber());
     });
 
 });

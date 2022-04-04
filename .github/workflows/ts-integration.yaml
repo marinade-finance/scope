@@ -8,7 +8,7 @@ on:
     branches:
       - master
 env:
-  solana_version: stable
+  solana_version: v1.9.5
   anchor_version: 0.22.0
 
 jobs:
@@ -20,6 +20,7 @@ jobs:
           [
             'yarn run ts-mocha -t 1000000 tests/test_oracle_operation.ts',
             'yarn run ts-mocha -t 1000000 tests/test_crank.ts',
+            'yarn run ts-mocha -t 1000000 tests/test_yi_token.ts',
             'cargo test',
           ]
     steps:
@@ -91,9 +92,6 @@ jobs:
         run: |
           export PATH="/home/runner/.local/share/solana/install/active_release/bin:$PATH"
           solana --version
-          solana-keygen new --no-bip39-passphrase -s
-          mkdir -p keys/localnet
-          solana-keygen new --no-bip39-passphrase -s -o keys/localnet/owner.json
       - name: yarn install
         run: |
           export PATH="/home/runner/.local/share/solana/install/active_release/bin:$PATH"
@@ -106,8 +104,8 @@ jobs:
         run: |
           export PATH="/home/runner/.local/share/solana/install/active_release/bin:$PATH"
           export CLUSTER=localnet
-          solana-test-validator -r > validator.logs 2>&1 &
-          sleep 10
+          make test-validator > validator.logs 2>&1 &
+          sleep 15
           make airdrop
           make deploy
           ${{ matrix.test_name }}

@@ -20,7 +20,10 @@ localnet = []
 mainnet = []
 
 [dependencies]
-anchor-lang = "0.20.1"
+anchor-lang = "~0.20.1"
+anchor-spl = { version = "~0.20.1", features = ["token"] }
+spl-token = { version = "3.1.1", features = ["no-entrypoint"] }
 num_enum = "0.5.6"
 pyth-client = "0.2.2"
 cfg-if = "1.0.0"
+serde = "1.0.136"

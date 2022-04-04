@@ -43,6 +43,7 @@ export const createPriceFeed = async ({
             ]
         }
     )
+    console.log('Initialized collateralTokenFeed');
     return collateralTokenFeed.publicKey
 }
 export const setFeedPrice = async (

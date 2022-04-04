@@ -99,20 +99,27 @@ deploy:
 
 deploy-int: $(PROGRAM_SO) $(PROGRAM_KEYPAIR) $(OWNER_KEYPAIR)
 >@ echo "*******Deploy $(PROGRAM_SO) to $(URL)*******"
->@ PROGRAM_SIZE=$(shell stat -c%s "$(PROGRAM_SO)");\
-   PROGRAM_SIZE=$$(( PROGRAM_SIZE * 4 ));\
-   echo "Program allocated size: $$PROGRAM_SIZE";\
-   solana program deploy -v \
-   -u $(URL) \
-   --program-id $(PROGRAM_KEYPAIR) \
-   --keypair $(OWNER_KEYPAIR) \
-   --upgrade-authority $(OWNER_KEYPAIR) \
-   --max-len $$PROGRAM_SIZE \
-   $(PROGRAM_SO)
+>@ if [ $(shell uname -s) = "Darwin" ]; then \
+      PROGRAM_SIZE=$(shell stat -f '%z' "$(PROGRAM_SO)");\
+   else \
+      PROGRAM_SIZE=$(shell stat -c%s "$(PROGRAM_SO)"); \
+   fi
+>@ PROGRAM_SIZE=$$(( PROGRAM_SIZE * 4 ))
+>@ echo "Program allocated size: $$PROGRAM_SIZE"
+>@ solana program deploy -v \
+    -u $(URL) \
+    --program-id $(PROGRAM_KEYPAIR) \
+    --keypair $(OWNER_KEYPAIR) \
+    --upgrade-authority $(OWNER_KEYPAIR) \
+    --max-len $$PROGRAM_SIZE \
+    $(PROGRAM_SO)
 
 ## Listen to on-chain logs
 listen:
 > solana logs -u $(URL) ${SCOPE_PROGRAM_ID}
+
+test-validator:
+> solana-test-validator -r --url mainnet-beta --clone EDLcx5J9aBkA6a7V5aQLqb8nnBByNhhNn8Qr9QksHobc CGczF9uYdSVXmSr9swMafhF1ktHsi6ygcgTHWL71XNZ9 --account JAa3gQySiTi8tH3dpkvgztJWHQC1vGXr5m6SQ9LEM55T deps/solustscope.json
 
 test: test-rust test-ts
 

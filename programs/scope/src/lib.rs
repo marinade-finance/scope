@@ -22,6 +22,7 @@ pub mod scope {
         handler_initialize::process(ctx, feed_name)
     }
 
+    //This handler only works for Pyth type tokens
     pub fn refresh_one_price(ctx: Context<RefreshOne>, token: u64) -> ProgramResult {
         let token: usize = token
             .try_into()
@@ -29,22 +30,21 @@ pub mod scope {
         handler_refresh_prices::refresh_one_price(ctx, token)
     }
 
-    pub fn refresh_batch_prices(ctx: Context<RefreshBatch>, first_token: u64) -> ProgramResult {
-        let first_token: usize = first_token
-            .try_into()
-            .map_err(|_| ScopeError::OutOfRangeIntegralConversion)?;
-        handler_refresh_prices::refresh_batch_prices(ctx, first_token)
+    pub fn refresh_yi_token(ctx: Context<RefreshYiToken>, token: u64) -> ProgramResult {
+        let token: usize = token.try_into().map_err(|_| ScopeError::OutOfRangeIntegralConversion)?;
+        handler_yitoken_prices::refresh_yi_token(ctx, token)
     }
 
+    /// This handler will reject the refresh of yi tokens
     pub fn refresh_price_list(ctx: Context<RefreshList>, tokens: Vec<u16>) -> ProgramResult {
         handler_refresh_prices::refresh_price_list(ctx, &tokens)
     }
 
-    pub fn update_mapping(ctx: Context<UpdateOracleMapping>, token: u64) -> ProgramResult {
+    pub fn update_mapping(ctx: Context<UpdateOracleMapping>, token: u64, price_type: u8) -> ProgramResult {
         let token: usize = token
             .try_into()
             .map_err(|_| ScopeError::OutOfRangeIntegralConversion)?;
-        handler_update_mapping::process(ctx, token)
+        handler_update_mapping::process(ctx, token, price_type)
     }
 }
 
@@ -84,7 +84,7 @@ pub struct OraclePrices {
 #[account(zero_copy)]
 pub struct OracleMappings {
     pub price_info_accounts: [Pubkey; MAX_ENTRIES],
-    pub _reserved: [u8; MAX_ENTRIES],
+    pub price_types: [u8; MAX_ENTRIES],
     pub _reserved2: [u64; MAX_ENTRIES],
 }
 
@@ -123,6 +123,9 @@ pub enum ScopeError {
 
     #[msg("The token index received is out of range")]
     BadTokenNb,
+
+    #[msg("The token type received is invalid")]
+    BadTokenType,
 }
 
 impl<T> From<TryFromPrimitiveError<T>> for ScopeError
