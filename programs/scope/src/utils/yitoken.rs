@@ -9,8 +9,9 @@ pub fn get_price(price_type: PriceType,
                  yi_mint: &Account<Mint>, clock_slot: clock::Slot) -> Result<DatedPrice> {
     match price_type {
         PriceType::Pyth => return Err(ScopeError::BadTokenType.into()),
-        PriceType::Switchboard => todo!(),
+        PriceType::SwitchboardV1 => return Err(ScopeError::BadTokenType.into()),
         PriceType::YiToken => (),
+        PriceType::SwitchboardV2 => return Err(ScopeError::BadTokenType.into()),
     }
     let yi_underlying_tokens_amount = yi_underlying_tokens.amount;
     let yi_mint_supply = yi_mint.supply;

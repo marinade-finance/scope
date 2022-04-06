@@ -1,3 +1,5 @@
+extern crate core;
+
 pub use anchor_lang::prelude::*;
 use num_enum::{TryFromPrimitive, TryFromPrimitiveError};
 use std::convert::TryInto;
@@ -126,6 +128,9 @@ pub enum ScopeError {
 
     #[msg("The token type received is invalid")]
     BadTokenType,
+
+    #[msg("There was an error with the Switchboard V2 retrieval")]
+    SwitchboardV2Error,
 }
 
 impl<T> From<TryFromPrimitiveError<T>> for ScopeError

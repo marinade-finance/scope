@@ -1,5 +1,7 @@
 pub mod pyth;
 pub mod yitoken;
+pub mod switchboard_v1;
+pub mod switchboard_v2;
 
 use crate::{DatedPrice, ScopeError};
 use anchor_lang::prelude::{AccountInfo, Context, ProgramResult};
@@ -19,8 +21,9 @@ pub fn check_context<T>(ctx: &Context<T>) -> ProgramResult {
 #[repr(u8)]
 pub enum PriceType {
     Pyth,
-    Switchboard,
+    SwitchboardV1,
     YiToken,
+    SwitchboardV2,
 }
 
 pub fn get_price(
@@ -29,7 +32,8 @@ pub fn get_price(
 ) -> crate::Result<DatedPrice> {
     match price_type {
         PriceType::Pyth => pyth::get_price(price_acc),
-        PriceType::Switchboard => todo!(),
+        PriceType::SwitchboardV1 => switchboard_v1::get_price(price_acc),
         PriceType::YiToken => Err(ScopeError::BadTokenType.into()),
+        PriceType::SwitchboardV2 => switchboard_v2::get_price(price_acc),
     }
 }
