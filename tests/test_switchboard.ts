@@ -259,7 +259,6 @@ describe("Switchboard Scope tests", () => {
                     scale: asset.expo,
                 })
             }
-            console.log('end init');
         }));
     });
 
