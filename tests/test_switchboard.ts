@@ -23,7 +23,11 @@ enum Tokens {
     UST,
     BNB,
     AVAX,
-    STSOLUST
+    STSOLUST,
+    SABERMSOLSOL,
+    USDHUSD,
+    STSOLUSD
+
 }
 
 enum PriceType {
@@ -33,82 +37,135 @@ enum PriceType {
     SwitchboardV2 = 3,
 }
 
-const initialTokens = [
+let initialTokens = [
     {
         price: new Decimal('228.41550900'),
         ticker: Buffer.from('SOL'),
         decimals: 8,
-        priceType: PriceType.Pyth
+        priceType: PriceType.Pyth,
+        mantissa: new BN(0),
+        expo: 0
     },
     {
         price: new Decimal('4726.59830000'),
         ticker: Buffer.from('ETH'),
         decimals: 8,
-        priceType: PriceType.Pyth
+        priceType: PriceType.Pyth,
+        mantissa: new BN(0),
+        expo: 0
     },
     {
         price: new Decimal('64622.36900000'),
         ticker: Buffer.from('BTC'),
         decimals: 8,
-        priceType: PriceType.Pyth
+        priceType: PriceType.Pyth,
+        mantissa: new BN(0),
+        expo: 0
     },
     {
         price: new Decimal('7.06975570'),
         ticker: Buffer.from('SRM'),
         decimals: 8,
-        priceType: PriceType.Pyth
+        priceType: PriceType.Pyth,
+        mantissa: new BN(0),
+        expo: 0
     },
     {
         price: new Decimal('11.10038050'),
         ticker: Buffer.from('RAY'),
         decimals: 8,
-        priceType: PriceType.Pyth
+        priceType: PriceType.Pyth,
+        mantissa: new BN(0),
+        expo: 0
     },
     {
         price: new Decimal('59.17104600'),
         ticker: Buffer.from('FTT'),
         decimals: 8,
-        priceType: PriceType.Pyth
+        priceType: PriceType.Pyth,
+        mantissa: new BN(0),
+        expo: 0
     },
     {
         price: new Decimal('253.41550900'),
         ticker: Buffer.from('MSOL'),
         decimals: 8,
-        priceType: PriceType.Pyth
+        priceType: PriceType.Pyth,
+        mantissa: new BN(0),
+        expo: 0
     },
     {
         price: new Decimal('228.415509'),
         ticker: Buffer.from('UST'),
         decimals: 8,
-        priceType: PriceType.Pyth
+        priceType: PriceType.Pyth,
+        mantissa: new BN(0),
+        expo: 0
     },
     {
         price: new Decimal('11.10038050'),
         ticker: Buffer.from('BNB'),
         decimals: 8,
-        priceType: PriceType.Pyth
+        priceType: PriceType.Pyth,
+        mantissa: new BN(0),
+        expo: 0
     },
     {
         price: new Decimal('59.17104600'),
         ticker: Buffer.from('AVAX'),
         decimals: 8,
-        priceType: PriceType.Pyth
+        priceType: PriceType.Pyth,
+        mantissa: new BN(0),
+        expo: 0
     },
     {
-        price: new Decimal('253.41550900'),
+        price: new Decimal('0.90987600'),
         ticker: Buffer.from('STSOLUST'),
         decimals: 8,
-        priceType: PriceType.YiToken
+        priceType: PriceType.YiToken,
+        mantissa: new BN(0),
+        expo: 0
+    },
+    {
+        price: new Decimal('343.92109348'),
+        ticker: Buffer.from('SABERMSOLSOL'),
+        decimals: 8,
+        priceType: PriceType.SwitchboardV1,
+        mantissa: new BN('34392109348'),
+        expo: 8
+    },
+    {
+        price: new Decimal('999.20334456'),
+        ticker: Buffer.from('USDHUSD'),
+        decimals: 8,
+        priceType: PriceType.SwitchboardV1,
+        mantissa: new BN('99920334456'),
+        expo: 8
+    },
+    {
+        mantissa: new BN('474003240021234567'),
+        expo: 15,
+        ticker: Buffer.from('STSOLUSD'),
+        price: new Decimal('474.003240021234567'),
+        decimals: 8,
+        priceType: PriceType.SwitchboardV2
     },
 ]
 
-const PRICE_FEED = "yi_test_feed"
+const PRICE_FEED = "switchboard_test_feed"
 const MAX_NB_TOKENS_IN_ONE_UPDATE = 27;
 
-const YI_UNDERLYING_TOKENS = new PublicKey('EDLcx5J9aBkA6a7V5aQLqb8nnBByNhhNn8Qr9QksHobc');
-const YI_MINT = new PublicKey('CGczF9uYdSVXmSr9swMafhF1ktHsi6ygcgTHWL71XNZ9');
+function checkOraclePrice(token: number, oraclePrices: any) {
+    console.log(`Check ${initialTokens[token].ticker} price`)
+    let price = oraclePrices.prices[token].price;
+    let value = price.value.toString();
+    let expo = price.exp.toString();
+    //let in_decimal = new Decimal(value).mul((new Decimal(10)).pow(new Decimal(-expo)))
+    console.log('value expo', value, expo)
+    //expect(in_decimal).decimal.eq(initialTokens[token].price);
+}
 
-describe("Yi Scope tests", () => {
+describe("Switchboard Scope tests", () => {
     const keypair_acc = Uint8Array.from(Buffer.from(JSON.parse(require('fs').readFileSync(`./keys/${global.getCluster()}/owner.json`))));
     const admin = Keypair.fromSecretKey(keypair_acc);
 
@@ -127,7 +184,7 @@ describe("Yi Scope tests", () => {
 
     const fakePythProgram = new Program(global.FakePythIdl, global.getFakePythProgramId(), provider);
     let fakePythAccounts: Array<PublicKey>;
-    let fakePythAccounts2: Array<PublicKey>; // Used to overflow oracle capacity
+    // let fakePythAccounts2: Array<PublicKey>; // Used to overflow oracle capacity
 
     let programDataAddress: PublicKey;
     let confAccount: PublicKey;
@@ -175,26 +232,44 @@ describe("Yi Scope tests", () => {
         fakePythAccounts = await Promise.all(initialTokens.map(async (asset): Promise<any> => {
             console.log(`Adding ${asset.ticker.toString()}`)
 
-            const oracleAddress = await pythUtils.createPriceFeed({
-                oracleProgram: fakePythProgram,
-                initPrice: asset.price,
-                expo: -asset.decimals
-            })
-
-            return oracleAddress;
+            if(asset.priceType == PriceType.Pyth || asset.priceType == PriceType.YiToken) {
+                const oracleAddress = await pythUtils.createPriceFeed({
+                    oracleProgram: fakePythProgram,
+                    initPrice: asset.price,
+                    expo: -asset.decimals
+                })
+                return oracleAddress;
+            }
+            else if(asset.priceType == PriceType.SwitchboardV1) {
+                const oracleAddress = await pythUtils.createPriceFeedSwitchboardV1({
+                    oracleProgram: fakePythProgram,
+                    mantissa: asset.mantissa,
+                    scale: asset.expo
+                })
+                return oracleAddress;
+            }
+            else if(asset.priceType == PriceType.SwitchboardV2) {
+                const oracleAddress = await pythUtils.createPriceFeedSwitchboardV2({
+                    oracleProgram: fakePythProgram,
+                    mantissa: asset.mantissa,
+                    scale: asset.expo,
+                })
+                return oracleAddress;
+            }
+            console.log('end init');
         }));
 
-        const range = Array.from(Array(MAX_NB_TOKENS_IN_ONE_UPDATE).keys());
-        fakePythAccounts2 = await Promise.all(range.map(async (idx): Promise<any> => {
-            // Just create random accounts to fill-up the prices
-            const oracleAddress = await pythUtils.createPriceFeed({
-                oracleProgram: fakePythProgram,
-                initPrice: new Decimal(idx),
-                expo: -8
-            })
-
-            return oracleAddress;
-        }));
+        // const range = Array.from(Array(MAX_NB_TOKENS_IN_ONE_UPDATE).keys());
+        // fakePythAccounts2 = await Promise.all(range.map(async (idx): Promise<any> => {
+        //     // Just create random accounts to fill-up the prices
+        //     const oracleAddress = await pythUtils.createPriceFeed({
+        //         oracleProgram: fakePythProgram,
+        //         initPrice: new Decimal(idx),
+        //         expo: -8
+        //     })
+        //
+        //     return oracleAddress;
+        // }));
     });
 
     it('test_set_oracle_mappings', async () => {
@@ -215,32 +290,55 @@ describe("Yi Scope tests", () => {
                 });
         }));
     });
-
-    it('test_update_Yi_price', async () => {
-        let oracle = await program.account.oraclePrices.fetch(oracleAccount);
-        oracle = await program.account.oraclePrices.fetch(oracleAccount);
-        let price = oracle.prices[10].price;
-        let value = price.value.toNumber();
-        let expo = price.exp.toNumber();
-        let in_decimal_before = new Decimal(value).mul((new Decimal(10)).pow(new Decimal(-expo)));
-        console.log("Calling Refresh now.");
-        await program.rpc.refreshYiToken(
-            new BN(Tokens.STSOLUST),
+    it('test_update_stsolusd_v2_price', async () => {
+        await program.rpc.refreshOnePrice(
+            new BN(Tokens.STSOLUSD),
             {
                 accounts: {
                     oraclePrices: oracleAccount,
                     oracleMappings: oracleMappingAccount,
-                    yiUnderlyingTokens: YI_UNDERLYING_TOKENS,
-                    yiMint: YI_MINT,
+                    pythPriceInfo: fakePythAccounts[Tokens.STSOLUSD],
                     clock: SYSVAR_CLOCK_PUBKEY
                 },
                 signers: []
             });
-        oracle = await program.account.oraclePrices.fetch(oracleAccount);
-        price = oracle.prices[10].price;
-        value = price.value.toNumber();
-        expo = price.exp.toNumber();
-        let in_decimal_after = new Decimal(value).mul((new Decimal(10)).pow(new Decimal(-expo)));
-        expect(in_decimal_after.toNumber()).not.eq(in_decimal_before.toNumber());
+        {
+            let oracle = await program.account.oraclePrices.fetch(oracleAccount);
+            checkOraclePrice(Tokens.STSOLUSD, oracle);
+        }
+    });
+    it('test_update_sabermsolsol_v1_price', async () => {
+        await program.rpc.refreshOnePrice(
+            new BN(Tokens.SABERMSOLSOL),
+            {
+                accounts: {
+                    oraclePrices: oracleAccount,
+                    oracleMappings: oracleMappingAccount,
+                    pythPriceInfo: fakePythAccounts[Tokens.SABERMSOLSOL],
+                    clock: SYSVAR_CLOCK_PUBKEY
+                },
+                signers: []
+            });
+        {
+            let oracle = await program.account.oraclePrices.fetch(oracleAccount);
+            checkOraclePrice(Tokens.SABERMSOLSOL, oracle);
+        }
+    });
+    it('test_update_usdh_usd_v1_price', async () => {
+        await program.rpc.refreshOnePrice(
+            new BN(Tokens.USDHUSD),
+            {
+                accounts: {
+                    oraclePrices: oracleAccount,
+                    oracleMappings: oracleMappingAccount,
+                    pythPriceInfo: fakePythAccounts[Tokens.USDHUSD],
+                    clock: SYSVAR_CLOCK_PUBKEY
+                },
+                signers: []
+            });
+        {
+            let oracle = await program.account.oraclePrices.fetch(oracleAccount);
+            checkOraclePrice(Tokens.USDHUSD, oracle);
+        }
     });
 });

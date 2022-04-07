@@ -20,10 +20,10 @@ pub fn get_price(switchboard_feed_info: &AccountInfo) -> Result<DatedPrice> {
     }
 
     let aggregator: AggregatorState = get_aggregator(switchboard_feed_info)?;
-    if aggregator.version.unwrap() != 1 {
-        msg!("switchboard version incorrect");
-        return Err(ScopeError::UnexpectedAccount.into());
-    }
+    // if aggregator.version.unwrap() != 1 {
+    //     msg!("switchboard version incorrect");
+    //     return Err(ScopeError::UnexpectedAccount.into());
+    // }
     let round_result: RoundResult = get_aggregator_result(&aggregator)?;
 
     let price_float = round_result.result.unwrap_or(0.0);

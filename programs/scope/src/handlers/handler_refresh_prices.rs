@@ -25,6 +25,7 @@ pub struct RefreshList<'info> {
 }
 
 pub fn refresh_one_price(ctx: Context<RefreshOne>, token: usize) -> ProgramResult {
+    msg!("refresh one price for token {}", token);
     let oracle_mappings = ctx.accounts.oracle_mappings.load()?;
     let pyth_price_info = &ctx.accounts.pyth_price_info;
 

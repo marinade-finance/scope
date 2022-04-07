@@ -91,6 +91,27 @@ let tokenList = [
         decimals: 8,
         priceType: 2
     },
+    // {
+    //     price: new Decimal('474.00324002'),
+    //     ticker: Buffer.from('STSOL/USD'),
+    //     decimals: 8,
+    //     priceType: 1,
+    //     tempacc: '9LNYQZLJG5DAyeACCTzBFG6H3sDhehP5xtYLdhrZtQkA'
+    // },
+    // {
+    //     price: new Decimal('343.92109348'),
+    //     ticker: Buffer.from('SaberMSOL/SOL'),
+    //     decimals: 8,
+    //     priceType: 3,
+    //     tempacc: '2CpB8n1hntXDCQ3E7wEARZH8S8mrtdpZhG2FdYZs8NoU'
+    // },
+    // {
+    //     price: new Decimal('999.20334456'),
+    //     ticker: Buffer.from('USDH/USD'),
+    //     decimals: 8,
+    //     priceType: 3,
+    //     tempacc: '37NFcKPTgqUVx3gwTQ4c2Q94oJWk2xZy3NQUXtDixReb'
+    // },
 ]
 
 const PRICE_FEED = "crank_test_feed"

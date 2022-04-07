@@ -29,12 +29,14 @@ pub fn process(ctx: Context<UpdateOracleMapping>, token: usize, price_type: u8) 
         return Ok(());
     }
 
-    let pyth_price_info = ctx.accounts.pyth_price_info.as_ref();
-    let pyth_price_data = pyth_price_info.try_borrow_data()?;
-    let pyth_price = pyth_client::cast::<pyth_client::Price>(&pyth_price_data);
+    if price_type == PriceType::Pyth as u8 {
+        let pyth_price_info = ctx.accounts.pyth_price_info.as_ref();
+        let pyth_price_data = pyth_price_info.try_borrow_data()?;
+        let pyth_price = pyth_client::cast::<pyth_client::Price>(&pyth_price_data);
 
-    pyth::validate_pyth_price(pyth_price)?;
-    // Every check succeeded, replace current with new
+        pyth::validate_pyth_price(pyth_price)?;
+        // Every check succeeded, replace current with new
+    }
     *current_price_pubkey = new_price_pubkey;
 
     //let stored_price_type = &mut oracle_mappings.price_types[token];

@@ -1,6 +1,14 @@
 use anchor_lang::prelude::*;
 pub mod pc;
+
 use pc::{Price, PriceStatus};
+use switchboard_program::{
+    get_aggregator, get_aggregator_result, mod_AggregatorState, AggregatorState, RoundResult, SwitchboardAccountType,
+};
+use bytemuck::{cast_slice_mut, from_bytes_mut, try_cast_slice_mut, Pod, Zeroable};
+use borsh::{BorshSerialize, BorshDeserialize};
+use quick_protobuf::deserialize_from_slice;
+use quick_protobuf::serialize_into_slice;
 
 const PROGRAM_ID: Pubkey = Pubkey::new_from_array(include!(concat!(env!("OUT_DIR"), "/pubkey.rs")));
 
@@ -8,9 +16,12 @@ declare_id!(PROGRAM_ID);
 
 #[program]
 pub mod pyth {
-
+    use std::cell::RefMut;
     use std::convert::TryInto;
-
+    use std::ops::Div;
+    use switchboard_v2::AggregatorAccountData;
+    use switchboard_v2::aggregator::{AggregatorRound, Hash};
+    use switchboard_v2::decimal::SwitchboardDecimal;
     use super::*;
     pub fn initialize(ctx: Context<Initialize>, price: i64, expo: i32, conf: u64) -> ProgramResult {
         let oracle = &ctx.accounts.price;
@@ -33,6 +44,48 @@ pub mod pyth {
 
         Ok(())
     }
+
+    pub fn initialize_switchboard_v1(ctx: Context<Initialize>, mantissa: i128, scale: u32) -> ProgramResult {
+        let mut account_data = ctx.accounts.price.data.borrow_mut();
+        account_data[0] = SwitchboardAccountType::TYPE_AGGREGATOR as u8;
+
+        let configs = Some(mod_AggregatorState::Configs{
+            min_confirmations: Some(3),
+          ..mod_AggregatorState::Configs::default()
+        });
+
+        let price: f64 = mantissa.div(10i128.pow(scale)) as f64;
+        let last_round_result = Some(RoundResult{
+            num_success: Some(3),
+            result: Some(price),
+            round_open_slot: Some(0),
+            ..RoundResult::default()
+        });
+        let aggregator_state = AggregatorState{
+            last_round_result,
+            configs,
+            ..AggregatorState::default()
+        };
+        serialize_into_slice(&aggregator_state, &mut account_data[1..]);
+        //let _ = switchboard_program::get_aggregator(&ctx.accounts.price).unwrap();
+
+        Ok(())
+    }
+
+
+    pub fn initialize_switchboard_v2(ctx: Context<Initialize>, mantissa: i128, scale: u32) -> ProgramResult {
+        let mut account_data = ctx.accounts.price.data.borrow_mut();
+        let discriminator: [u8;8] = [217, 230, 65, 101, 201, 162, 27, 125];
+        &account_data[..8].copy_from_slice(&discriminator);
+        let aggregator_account_data : &mut AggregatorAccountData = bytemuck::from_bytes_mut(&mut account_data[8..]);
+        aggregator_account_data.latest_confirmed_round.result = SwitchboardDecimal::new(mantissa, scale);
+        aggregator_account_data.latest_confirmed_round.num_success = 3;
+        aggregator_account_data.min_oracle_results = 3;
+        Ok(())
+    }
+
+
+
     pub fn set_price(ctx: Context<SetPrice>, price: i64) -> ProgramResult {
         let oracle = &ctx.accounts.price;
 
@@ -44,6 +97,23 @@ pub mod pyth {
         msg!("Price {} updated to {} at slot {}", oracle.key, price, slot);
         Ok(())
     }
+
+    pub fn set_price_switchboard_v1(ctx: Context<SetPrice>, mantissa: i128, scale: u32) -> ProgramResult {
+        let mut state_buffer = ctx.accounts.price.try_borrow_mut_data()?;
+        let mut aggregator_state: AggregatorState =
+            deserialize_from_slice(&state_buffer[1..]).map_err(|_| ProgramError::InvalidAccountData)?;
+        let mut last_round_result = aggregator_state.last_round_result.unwrap();
+        let price: f64 = mantissa.div(10i128.pow(scale)) as f64;
+        last_round_result.result = Some(price);
+        aggregator_state.last_round_result = Some(last_round_result);
+
+        let vector = aggregator_state.try_to_vec().unwrap();
+        state_buffer[1..].copy_from_slice(&vector);
+
+        Ok(())
+    }
+
+
     pub fn set_trading(ctx: Context<SetPrice>, status: u8) -> ProgramResult {
         let oracle = &ctx.accounts.price;
         let mut price_oracle = Price::load(oracle).unwrap();
@@ -88,3 +158,4 @@ pub struct Initialize<'info> {
     pub price: AccountInfo<'info>,
     pub clock: Sysvar<'info, Clock>,
 }
+

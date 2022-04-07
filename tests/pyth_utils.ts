@@ -46,6 +46,69 @@ export const createPriceFeed = async ({
     console.log('Initialized collateralTokenFeed');
     return collateralTokenFeed.publicKey
 }
+
+interface ICreatePriceFeedSwitchboardV1 {
+    oracleProgram: Program
+    mantissa: BN
+    scale: number
+}
+export const createPriceFeedSwitchboardV1 = async ({
+                                          oracleProgram,
+                                          mantissa,
+                                          scale,
+                                      }: ICreatePriceFeedSwitchboardV1) => {
+    const collateralTokenFeed = new web3.Keypair()
+
+    await oracleProgram.rpc.initializeSwitchboardV1(
+        mantissa, scale,
+        {
+            accounts: { price: collateralTokenFeed.publicKey, clock: SYSVAR_CLOCK_PUBKEY },
+            signers: [collateralTokenFeed],
+            instructions: [
+                web3.SystemProgram.createAccount({
+                    fromPubkey: oracleProgram.provider.wallet.publicKey,
+                    newAccountPubkey: collateralTokenFeed.publicKey,
+                    space: 2500,
+                    lamports: await oracleProgram.provider.connection.getMinimumBalanceForRentExemption(2500),
+                    programId: oracleProgram.programId
+                })
+            ]
+        }
+    )
+    console.log('Initialized collateralTokenFeed Switchboard V1');
+    return collateralTokenFeed.publicKey
+}
+interface ICreatePriceFeedSwitchboardV2 {
+    oracleProgram: Program
+    mantissa: BN,
+    scale: number
+}
+export const createPriceFeedSwitchboardV2 = async ({
+                                                       oracleProgram,
+                                                       mantissa,
+                                                       scale,
+                                                   }: ICreatePriceFeedSwitchboardV2) => {
+    const collateralTokenFeed = new web3.Account()
+
+    await oracleProgram.rpc.initializeSwitchboardV2(
+        mantissa, scale,
+        {
+            accounts: { price: collateralTokenFeed.publicKey, clock: SYSVAR_CLOCK_PUBKEY },
+            signers: [collateralTokenFeed],
+            instructions: [
+                web3.SystemProgram.createAccount({
+                    fromPubkey: oracleProgram.provider.wallet.publicKey,
+                    newAccountPubkey: collateralTokenFeed.publicKey,
+                    space: 3851,
+                    lamports: await oracleProgram.provider.connection.getMinimumBalanceForRentExemption(3851),
+                    programId: oracleProgram.programId
+                })
+            ]
+        }
+    )
+    console.log('Initialized collateralTokenFeed Switchboard V2');
+    return collateralTokenFeed.publicKey
+}
 export const setFeedPrice = async (
     oracleProgram: Program,
     newPrice: Decimal,
