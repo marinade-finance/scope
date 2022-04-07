@@ -1,15 +1,23 @@
+import * as pythUtils from "./pyth_utils";
 import {setFeedPriceSwitchboardV1, setFeedPriceSwitchboardV2} from "./pyth_utils";
-
-require('dotenv').config();
-import { Keypair, PublicKey, SystemProgram, SYSVAR_CLOCK_PUBKEY, Connection, ConnectionConfig, SYSVAR_RENT_PUBKEY } from '@solana/web3.js';
-import { Provider, Program, setProvider, BN } from "@project-serum/anchor"
+import {
+    Connection,
+    ConnectionConfig,
+    Keypair,
+    PublicKey,
+    SystemProgram,
+    SYSVAR_CLOCK_PUBKEY,
+    SYSVAR_RENT_PUBKEY
+} from '@solana/web3.js';
+import {BN, Program, Provider, setProvider} from "@project-serum/anchor"
 import NodeWallet from '@project-serum/anchor/dist/cjs/nodewallet';
-import * as pythUtils from './pyth_utils';
-import { Decimal } from 'decimal.js';
+import {Decimal} from 'decimal.js';
 import * as chai from 'chai';
-import { expect } from 'chai';
+import {expect} from 'chai';
 import chaiDecimalJs from 'chai-decimaljs';
 import * as global from './global';
+
+require('dotenv').config();
 
 chai.use(chaiDecimalJs(Decimal));
 
@@ -232,21 +240,19 @@ describe("Switchboard Scope tests", () => {
         fakePythAccounts = await Promise.all(initialTokens.map(async (asset): Promise<any> => {
             console.log(`Adding ${asset.ticker.toString()}`)
 
-            if(asset.priceType == PriceType.Pyth || asset.priceType == PriceType.YiToken) {
+            if (asset.priceType == PriceType.Pyth || asset.priceType == PriceType.YiToken) {
                 return await pythUtils.createPriceFeed({
                     oracleProgram: fakePythProgram,
                     initPrice: asset.price,
                     expo: -asset.decimals
                 })
-            }
-            else if(asset.priceType == PriceType.SwitchboardV1) {
+            } else if (asset.priceType == PriceType.SwitchboardV1) {
                 return await pythUtils.createPriceFeedSwitchboardV1({
                     oracleProgram: fakePythProgram,
                     mantissa: asset.mantissa,
                     scale: asset.expo
                 })
-            }
-            else if(asset.priceType == PriceType.SwitchboardV2) {
+            } else if (asset.priceType == PriceType.SwitchboardV2) {
                 return await pythUtils.createPriceFeedSwitchboardV2({
                     oracleProgram: fakePythProgram,
                     mantissa: asset.mantissa,

@@ -1,26 +1,26 @@
 import {Token} from "@solana/spl-token";
-
-require('dotenv').config();
 import {
+    Connection,
+    ConnectionConfig,
     Keypair,
     PublicKey,
     SystemProgram,
-    Connection,
-    ConnectionConfig,
     SYSVAR_RENT_PUBKEY,
     Transaction
 } from '@solana/web3.js';
-import { Provider, Program, setProvider, BN } from "@project-serum/anchor"
-import { sleep } from '@project-serum/common';
+import {BN, Program, Provider, setProvider} from "@project-serum/anchor"
+import {sleep} from '@project-serum/common';
 import NodeWallet from '@project-serum/anchor/dist/cjs/nodewallet';
 import * as pythUtils from './pyth_utils';
-import { Decimal } from 'decimal.js';
+import {Decimal} from 'decimal.js';
 import * as chai from 'chai';
-import { expect } from 'chai';
+import {expect} from 'chai';
 import chaiDecimalJs from 'chai-decimaljs';
 import * as global from './global';
 import * as bot from './bot_utils';
 import {TOKEN_PROGRAM_ID} from "@project-serum/serum/lib/token-instructions";
+
+require('dotenv').config();
 
 chai.use(chaiDecimalJs(Decimal));
 
@@ -178,12 +178,14 @@ describe("Scope crank bot tests", () => {
     // NOTE: this only works when the test cases within this describe are
     // executed sequentially
     let scopeBot: bot.ScopeBot;
+
     function killBot() {
         if (scopeBot) {
             console.log('killing scopeBot process PID =', scopeBot.pid());
             scopeBot.stop();
         }
     }
+
     afterEach(() => {
         killBot();
     });

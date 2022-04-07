@@ -1,11 +1,19 @@
 require('dotenv').config();
-import { Keypair, PublicKey, SystemProgram, SYSVAR_CLOCK_PUBKEY, Connection, ConnectionConfig, SYSVAR_RENT_PUBKEY } from '@solana/web3.js';
-import { Provider, Program, setProvider, BN } from "@project-serum/anchor"
+import {
+    Connection,
+    ConnectionConfig,
+    Keypair,
+    PublicKey,
+    SystemProgram,
+    SYSVAR_CLOCK_PUBKEY,
+    SYSVAR_RENT_PUBKEY
+} from '@solana/web3.js';
+import {BN, Program, Provider, setProvider} from "@project-serum/anchor"
 import NodeWallet from '@project-serum/anchor/dist/cjs/nodewallet';
 import * as pythUtils from './pyth_utils';
-import { Decimal } from 'decimal.js';
+import {Decimal} from 'decimal.js';
 import * as chai from 'chai';
-import { expect } from 'chai';
+import {expect} from 'chai';
 import chaiDecimalJs from 'chai-decimaljs';
 import * as global from './global';
 
@@ -214,8 +222,8 @@ describe("Scope tests", () => {
                     clock: SYSVAR_CLOCK_PUBKEY
                 },
                 remainingAccounts: [
-                    { pubkey: fakePythAccounts[Tokens.ETH], isWritable: false, isSigner: false },
-                    { pubkey: fakePythAccounts[Tokens.RAY], isWritable: false, isSigner: false },
+                    {pubkey: fakePythAccounts[Tokens.ETH], isWritable: false, isSigner: false},
+                    {pubkey: fakePythAccounts[Tokens.RAY], isWritable: false, isSigner: false},
                 ],
                 signers: []
             });
@@ -253,7 +261,7 @@ describe("Scope tests", () => {
         let accounts: any[] = [];
         for (let i = 0; i < MAX_NB_TOKENS_IN_ONE_UPDATE; i++) {
             tokens.push(global.MAX_NB_TOKENS - i - 1);
-            accounts.push({ pubkey: fakePythAccounts2[i], isWritable: false, isSigner: false })
+            accounts.push({pubkey: fakePythAccounts2[i], isWritable: false, isSigner: false})
 
         }
         await program.rpc.refreshPriceList(

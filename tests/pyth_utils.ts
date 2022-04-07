@@ -1,6 +1,6 @@
-import { BN, Program, web3 } from '@project-serum/anchor'
-import { parsePriceData } from '@pythnetwork/client'
-import { SYSVAR_CLOCK_PUBKEY } from '@solana/web3.js'
+import {BN, Program, web3} from '@project-serum/anchor'
+import {parsePriceData} from '@pythnetwork/client'
+import {SYSVAR_CLOCK_PUBKEY} from '@solana/web3.js'
 import Decimal from 'decimal.js'
 
 export enum PriceStatus {
@@ -16,12 +16,13 @@ interface ICreatePriceFeed {
     confidence?: BN
     expo?: number
 }
+
 export const createPriceFeed = async ({
-    oracleProgram,
-    initPrice,
-    confidence,
-    expo = -8
-}: ICreatePriceFeed) => {
+                                          oracleProgram,
+                                          initPrice,
+                                          confidence,
+                                          expo = -8
+                                      }: ICreatePriceFeed) => {
     const conf = confidence || new BN(0)
     const collateralTokenFeed = new web3.Account()
 
@@ -30,7 +31,7 @@ export const createPriceFeed = async ({
         expo,
         conf,
         {
-            accounts: { price: collateralTokenFeed.publicKey, clock: SYSVAR_CLOCK_PUBKEY },
+            accounts: {price: collateralTokenFeed.publicKey, clock: SYSVAR_CLOCK_PUBKEY},
             signers: [collateralTokenFeed],
             instructions: [
                 web3.SystemProgram.createAccount({
@@ -52,17 +53,18 @@ interface ICreatePriceFeedSwitchboardV1 {
     mantissa: BN
     scale: number
 }
+
 export const createPriceFeedSwitchboardV1 = async ({
-                                          oracleProgram,
-                                          mantissa,
-                                          scale,
-                                      }: ICreatePriceFeedSwitchboardV1) => {
+                                                       oracleProgram,
+                                                       mantissa,
+                                                       scale,
+                                                   }: ICreatePriceFeedSwitchboardV1) => {
     const collateralTokenFeed = new web3.Keypair()
 
     await oracleProgram.rpc.initializeSwitchboardV1(
         mantissa, scale,
         {
-            accounts: { price: collateralTokenFeed.publicKey, clock: SYSVAR_CLOCK_PUBKEY },
+            accounts: {price: collateralTokenFeed.publicKey, clock: SYSVAR_CLOCK_PUBKEY},
             signers: [collateralTokenFeed],
             instructions: [
                 web3.SystemProgram.createAccount({
@@ -78,11 +80,13 @@ export const createPriceFeedSwitchboardV1 = async ({
     console.log('Initialized collateralTokenFeed Switchboard V1');
     return collateralTokenFeed.publicKey
 }
+
 interface ICreatePriceFeedSwitchboardV2 {
     oracleProgram: Program
     mantissa: BN,
     scale: number
 }
+
 export const createPriceFeedSwitchboardV2 = async ({
                                                        oracleProgram,
                                                        mantissa,
@@ -93,7 +97,7 @@ export const createPriceFeedSwitchboardV2 = async ({
     await oracleProgram.rpc.initializeSwitchboardV2(
         mantissa, scale,
         {
-            accounts: { price: collateralTokenFeed.publicKey, clock: SYSVAR_CLOCK_PUBKEY },
+            accounts: {price: collateralTokenFeed.publicKey, clock: SYSVAR_CLOCK_PUBKEY},
             signers: [collateralTokenFeed],
             instructions: [
                 web3.SystemProgram.createAccount({
@@ -119,7 +123,7 @@ export const setFeedPrice = async (
     const data = parsePriceData(info.data)
     const newPriceBn = new BN(newPrice.mul(new Decimal(10).pow(new Decimal(-data.exponent))).toNumber());
     await oracleProgram.rpc.setPrice(newPriceBn, {
-        accounts: { price: priceFeed, clock: SYSVAR_CLOCK_PUBKEY }
+        accounts: {price: priceFeed, clock: SYSVAR_CLOCK_PUBKEY}
     })
 }
 export const setFeedPriceSwitchboardV1 = async (
@@ -132,7 +136,7 @@ export const setFeedPriceSwitchboardV1 = async (
     //@ts-expect-error
     const data = parsePriceData(info.data)
     await oracleProgram.rpc.setPriceSwitchboardV1(mantissa, scale, {
-        accounts: { price: priceFeed, clock: SYSVAR_CLOCK_PUBKEY }
+        accounts: {price: priceFeed, clock: SYSVAR_CLOCK_PUBKEY}
     })
 }
 export const setFeedPriceSwitchboardV2 = async (
@@ -145,7 +149,7 @@ export const setFeedPriceSwitchboardV2 = async (
     //@ts-expect-error
     const data = parsePriceData(info.data)
     await oracleProgram.rpc.setPriceSwitchboardV2(mantissa, scale, {
-        accounts: { price: priceFeed, clock: SYSVAR_CLOCK_PUBKEY }
+        accounts: {price: priceFeed, clock: SYSVAR_CLOCK_PUBKEY}
     })
 }
 export const setFeedTrading = async (
@@ -154,7 +158,7 @@ export const setFeedTrading = async (
     priceFeed: web3.PublicKey
 ) => {
     await oracleProgram.rpc.setTrading(newStatus, {
-        accounts: { price: priceFeed }
+        accounts: {price: priceFeed}
     })
 }
 export const setConfidence = async (
@@ -168,7 +172,7 @@ export const setConfidence = async (
     const scaledConf = new BN(newConfidence * 10 ** -data.exponent)
 
     await oracleProgram.rpc.setConfidence(scaledConf, {
-        accounts: { price: priceFeed }
+        accounts: {price: priceFeed}
     })
 }
 export const setTwap = async (
@@ -180,7 +184,7 @@ export const setTwap = async (
     //@ts-expect-error
     const data = parsePriceData(info.data)
     await oracleProgram.rpc.setTwap(new BN(newTwap * 10 ** -data.exponent), {
-        accounts: { price: priceFeed }
+        accounts: {price: priceFeed}
     })
 }
 export const getFeedData = async (oracleProgram: Program, priceFeed: web3.PublicKey) => {
