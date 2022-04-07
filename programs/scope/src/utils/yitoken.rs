@@ -4,15 +4,8 @@ use anchor_spl::token::{TokenAccount, Mint};
 use crate::{DatedPrice, Price, ScopeError, Result};
 use crate::utils::PriceType;
 
-pub fn get_price(price_type: PriceType,
-                 yi_underlying_tokens: &Account<TokenAccount>,
+pub fn get_price(yi_underlying_tokens: &Account<TokenAccount>,
                  yi_mint: &Account<Mint>, clock_slot: clock::Slot) -> Result<DatedPrice> {
-    match price_type {
-        PriceType::Pyth => return Err(ScopeError::BadTokenType.into()),
-        PriceType::SwitchboardV1 => return Err(ScopeError::BadTokenType.into()),
-        PriceType::YiToken => (),
-        PriceType::SwitchboardV2 => return Err(ScopeError::BadTokenType.into()),
-    }
     let yi_underlying_tokens_amount = yi_underlying_tokens.amount;
     let yi_mint_supply = yi_mint.supply;
     let price_amount : u64 = 100_000_000u128

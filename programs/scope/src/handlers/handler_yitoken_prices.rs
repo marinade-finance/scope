@@ -34,7 +34,13 @@ pub fn refresh_yi_token(ctx: Context<RefreshYiToken>, token: usize) -> ProgramRe
 
     let mut oracle = ctx.accounts.oracle_prices.load_mut()?;
 
-    let price = get_price(price_type, &ctx.accounts.yi_underlying_tokens, &ctx.accounts.yi_mint, ctx.accounts.clock.slot)?;
+    match price_type {
+        PriceType::Pyth => return Err(ScopeError::BadTokenType.into()),
+        PriceType::SwitchboardV1 => return Err(ScopeError::BadTokenType.into()),
+        PriceType::YiToken => (),
+        PriceType::SwitchboardV2 => return Err(ScopeError::BadTokenType.into()),
+    };
+    let price = get_price(&ctx.accounts.yi_underlying_tokens, &ctx.accounts.yi_mint, ctx.accounts.clock.slot)?;
 
     oracle.prices[token] = price;
 
