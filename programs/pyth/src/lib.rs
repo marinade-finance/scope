@@ -100,20 +100,26 @@ pub mod pyth {
     }
 
     pub fn set_price_switchboard_v1(ctx: Context<SetPrice>, mantissa: i128, scale: u32) -> ProgramResult {
-        let mut state_buffer = ctx.accounts.price.try_borrow_mut_data()?;
-        let mut aggregator_state: AggregatorState =
-            deserialize_from_slice(&state_buffer[1..]).map_err(|_| ProgramError::InvalidAccountData)?;
+        let mut account_data = ctx.accounts.price.data.borrow_mut();
+        let mut aggregator_state: AggregatorState = deserialize_from_slice(&account_data[1..]).unwrap();
+        let mantissa_f64 = mantissa as f64;
+        let denominator = (10u128.pow(scale)) as f64;
+        let price = mantissa_f64.div(denominator);
         let mut last_round_result = aggregator_state.last_round_result.unwrap();
-        let price: f64 = mantissa.div(10i128.pow(scale)) as f64;
         last_round_result.result = Some(price);
         aggregator_state.last_round_result = Some(last_round_result);
-
-        let vector = aggregator_state.try_to_vec().unwrap();
-        state_buffer[1..].copy_from_slice(&vector);
+        serialize_into_slice(&aggregator_state, &mut account_data[1..]);
 
         Ok(())
     }
 
+    pub fn set_price_switchboard_v2(ctx: Context<SetPrice>, mantissa: i128, scale: u32) -> ProgramResult {
+        let mut account_data = ctx.accounts.price.data.borrow_mut();
+        let aggregator_account_data : &mut AggregatorAccountData = bytemuck::from_bytes_mut(&mut account_data[8..]);
+        aggregator_account_data.latest_confirmed_round.result = SwitchboardDecimal::new(mantissa, scale);
+
+        Ok(())
+    }
 
     pub fn set_trading(ctx: Context<SetPrice>, status: u8) -> ProgramResult {
         let oracle = &ctx.accounts.price;

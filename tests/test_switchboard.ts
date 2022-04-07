@@ -1,3 +1,5 @@
+import {setFeedPriceSwitchboardV1, setFeedPriceSwitchboardV2} from "./pyth_utils";
+
 require('dotenv').config();
 import { Keypair, PublicKey, SystemProgram, SYSVAR_CLOCK_PUBKEY, Connection, ConnectionConfig, SYSVAR_RENT_PUBKEY } from '@solana/web3.js';
 import { Provider, Program, setProvider, BN } from "@project-serum/anchor"
@@ -308,6 +310,87 @@ describe("Switchboard Scope tests", () => {
         }
     });
     it('test_update_usdh_usd_v1_price', async () => {
+        await program.rpc.refreshOnePrice(
+            new BN(Tokens.USDHUSD),
+            {
+                accounts: {
+                    oraclePrices: oracleAccount,
+                    oracleMappings: oracleMappingAccount,
+                    pythPriceInfo: fakePythAccounts[Tokens.USDHUSD],
+                    clock: SYSVAR_CLOCK_PUBKEY
+                },
+                signers: []
+            });
+        {
+            let oracle = await program.account.oraclePrices.fetch(oracleAccount);
+            checkOraclePrice(Tokens.USDHUSD, oracle);
+        }
+    });
+    it('test_set_update_stsolusd_v2_price', async () => {
+        let mantissa = new BN('123456789012345678');
+        let scale = new BN('15');
+        await setFeedPriceSwitchboardV2(
+            fakePythProgram,
+            mantissa,
+            scale,
+            fakePythAccounts[Tokens.STSOLUSD]
+        );
+        initialTokens[Tokens.STSOLUSD].mantissa = mantissa;
+        initialTokens[Tokens.STSOLUSD].expo = scale.toNumber();
+        await program.rpc.refreshOnePrice(
+            new BN(Tokens.STSOLUSD),
+            {
+                accounts: {
+                    oraclePrices: oracleAccount,
+                    oracleMappings: oracleMappingAccount,
+                    pythPriceInfo: fakePythAccounts[Tokens.STSOLUSD],
+                    clock: SYSVAR_CLOCK_PUBKEY
+                },
+                signers: []
+            });
+        {
+            let oracle = await program.account.oraclePrices.fetch(oracleAccount);
+            checkOraclePrice(Tokens.STSOLUSD, oracle);
+        }
+    });
+    it('test_set_update_saber_msol_sol_v1_price', async () => {
+        let mantissa = new BN('44859120123');
+        let scale = new BN('8');
+        await setFeedPriceSwitchboardV1(
+            fakePythProgram,
+            mantissa,
+            scale,
+            fakePythAccounts[Tokens.SABERMSOLSOL]
+        );
+        initialTokens[Tokens.SABERMSOLSOL].mantissa = mantissa;
+        initialTokens[Tokens.SABERMSOLSOL].expo = scale.toNumber();
+        await program.rpc.refreshOnePrice(
+            new BN(Tokens.SABERMSOLSOL),
+            {
+                accounts: {
+                    oraclePrices: oracleAccount,
+                    oracleMappings: oracleMappingAccount,
+                    pythPriceInfo: fakePythAccounts[Tokens.SABERMSOLSOL],
+                    clock: SYSVAR_CLOCK_PUBKEY
+                },
+                signers: []
+            });
+        {
+            let oracle = await program.account.oraclePrices.fetch(oracleAccount);
+            checkOraclePrice(Tokens.SABERMSOLSOL, oracle);
+        }
+    });
+    it('test_set_update_usdh_usd_v1_price', async () => {
+        let mantissa = new BN('88675558012');
+        let scale = new BN('8');
+        await setFeedPriceSwitchboardV1(
+            fakePythProgram,
+            mantissa,
+            scale,
+            fakePythAccounts[Tokens.USDHUSD]
+        );
+        initialTokens[Tokens.USDHUSD].mantissa = mantissa;
+        initialTokens[Tokens.USDHUSD].expo = scale.toNumber();
         await program.rpc.refreshOnePrice(
             new BN(Tokens.USDHUSD),
             {

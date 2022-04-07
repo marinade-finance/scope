@@ -122,6 +122,32 @@ export const setFeedPrice = async (
         accounts: { price: priceFeed, clock: SYSVAR_CLOCK_PUBKEY }
     })
 }
+export const setFeedPriceSwitchboardV1 = async (
+    oracleProgram: Program,
+    mantissa: BN,
+    scale: BN,
+    priceFeed: web3.PublicKey
+) => {
+    const info = await oracleProgram.provider.connection.getAccountInfo(priceFeed)
+    //@ts-expect-error
+    const data = parsePriceData(info.data)
+    await oracleProgram.rpc.setPriceSwitchboardV1(mantissa, scale, {
+        accounts: { price: priceFeed, clock: SYSVAR_CLOCK_PUBKEY }
+    })
+}
+export const setFeedPriceSwitchboardV2 = async (
+    oracleProgram: Program,
+    mantissa: BN,
+    scale: BN,
+    priceFeed: web3.PublicKey
+) => {
+    const info = await oracleProgram.provider.connection.getAccountInfo(priceFeed)
+    //@ts-expect-error
+    const data = parsePriceData(info.data)
+    await oracleProgram.rpc.setPriceSwitchboardV2(mantissa, scale, {
+        accounts: { price: priceFeed, clock: SYSVAR_CLOCK_PUBKEY }
+    })
+}
 export const setFeedTrading = async (
     oracleProgram: Program,
     newStatus: PriceStatus,
