@@ -153,16 +153,15 @@ let initialTokens = [
 ]
 
 const PRICE_FEED = "switchboard_test_feed"
-const MAX_NB_TOKENS_IN_ONE_UPDATE = 27;
 
 function checkOraclePrice(token: number, oraclePrices: any) {
     console.log(`Check ${initialTokens[token].ticker} price`)
     let price = oraclePrices.prices[token].price;
     let value = price.value.toString();
     let expo = price.exp.toString();
-    //let in_decimal = new Decimal(value).mul((new Decimal(10)).pow(new Decimal(-expo)))
-    console.log('value expo', value, expo)
-    //expect(in_decimal).decimal.eq(initialTokens[token].price);
+    expect(value).eq(initialTokens[token].mantissa.toString());
+    expect(expo).eq(initialTokens[token].expo.toString());
+
 }
 
 describe("Switchboard Scope tests", () => {
@@ -177,7 +176,6 @@ describe("Switchboard Scope tests", () => {
     const connection = new Connection('http://127.0.0.1:8899', config);
     const wallet = new NodeWallet(admin);
     const provider = new Provider(connection, wallet, Provider.defaultOptions());
-    const initialMarketOwner = provider.wallet.publicKey;
     setProvider(provider);
 
     const program = new Program(global.ScopeIdl, global.getScopeProgramId(), provider);
@@ -233,43 +231,28 @@ describe("Switchboard Scope tests", () => {
             console.log(`Adding ${asset.ticker.toString()}`)
 
             if(asset.priceType == PriceType.Pyth || asset.priceType == PriceType.YiToken) {
-                const oracleAddress = await pythUtils.createPriceFeed({
+                return await pythUtils.createPriceFeed({
                     oracleProgram: fakePythProgram,
                     initPrice: asset.price,
                     expo: -asset.decimals
                 })
-                return oracleAddress;
             }
             else if(asset.priceType == PriceType.SwitchboardV1) {
-                const oracleAddress = await pythUtils.createPriceFeedSwitchboardV1({
+                return await pythUtils.createPriceFeedSwitchboardV1({
                     oracleProgram: fakePythProgram,
                     mantissa: asset.mantissa,
                     scale: asset.expo
                 })
-                return oracleAddress;
             }
             else if(asset.priceType == PriceType.SwitchboardV2) {
-                const oracleAddress = await pythUtils.createPriceFeedSwitchboardV2({
+                return await pythUtils.createPriceFeedSwitchboardV2({
                     oracleProgram: fakePythProgram,
                     mantissa: asset.mantissa,
                     scale: asset.expo,
                 })
-                return oracleAddress;
             }
             console.log('end init');
         }));
-
-        // const range = Array.from(Array(MAX_NB_TOKENS_IN_ONE_UPDATE).keys());
-        // fakePythAccounts2 = await Promise.all(range.map(async (idx): Promise<any> => {
-        //     // Just create random accounts to fill-up the prices
-        //     const oracleAddress = await pythUtils.createPriceFeed({
-        //         oracleProgram: fakePythProgram,
-        //         initPrice: new Decimal(idx),
-        //         expo: -8
-        //     })
-        //
-        //     return oracleAddress;
-        // }));
     });
 
     it('test_set_oracle_mappings', async () => {

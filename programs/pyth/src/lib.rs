@@ -53,8 +53,9 @@ pub mod pyth {
             min_confirmations: Some(3),
           ..mod_AggregatorState::Configs::default()
         });
-
-        let price: f64 = mantissa.div(10i128.pow(scale)) as f64;
+        let mantissa_f64 = mantissa as f64;
+        let denominator = (10u128.pow(scale)) as f64;
+        let price = mantissa_f64.div(denominator);
         let last_round_result = Some(RoundResult{
             num_success: Some(3),
             result: Some(price),

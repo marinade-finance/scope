@@ -103,7 +103,6 @@ const initialTokens = [
 ]
 
 const PRICE_FEED = "yi_test_feed"
-const MAX_NB_TOKENS_IN_ONE_UPDATE = 27;
 
 const YI_UNDERLYING_TOKENS = new PublicKey('EDLcx5J9aBkA6a7V5aQLqb8nnBByNhhNn8Qr9QksHobc');
 const YI_MINT = new PublicKey('CGczF9uYdSVXmSr9swMafhF1ktHsi6ygcgTHWL71XNZ9');
@@ -120,14 +119,12 @@ describe("Yi Scope tests", () => {
     const connection = new Connection('http://127.0.0.1:8899', config);
     const wallet = new NodeWallet(admin);
     const provider = new Provider(connection, wallet, Provider.defaultOptions());
-    const initialMarketOwner = provider.wallet.publicKey;
     setProvider(provider);
 
     const program = new Program(global.ScopeIdl, global.getScopeProgramId(), provider);
 
     const fakePythProgram = new Program(global.FakePythIdl, global.getFakePythProgramId(), provider);
     let fakePythAccounts: Array<PublicKey>;
-    let fakePythAccounts2: Array<PublicKey>; // Used to overflow oracle capacity
 
     let programDataAddress: PublicKey;
     let confAccount: PublicKey;
@@ -175,25 +172,11 @@ describe("Yi Scope tests", () => {
         fakePythAccounts = await Promise.all(initialTokens.map(async (asset): Promise<any> => {
             console.log(`Adding ${asset.ticker.toString()}`)
 
-            const oracleAddress = await pythUtils.createPriceFeed({
+            return await pythUtils.createPriceFeed({
                 oracleProgram: fakePythProgram,
                 initPrice: asset.price,
                 expo: -asset.decimals
             })
-
-            return oracleAddress;
-        }));
-
-        const range = Array.from(Array(MAX_NB_TOKENS_IN_ONE_UPDATE).keys());
-        fakePythAccounts2 = await Promise.all(range.map(async (idx): Promise<any> => {
-            // Just create random accounts to fill-up the prices
-            const oracleAddress = await pythUtils.createPriceFeed({
-                oracleProgram: fakePythProgram,
-                initPrice: new Decimal(idx),
-                expo: -8
-            })
-
-            return oracleAddress;
         }));
     });
 
@@ -218,7 +201,6 @@ describe("Yi Scope tests", () => {
 
     it('test_update_Yi_price', async () => {
         let oracle = await program.account.oraclePrices.fetch(oracleAccount);
-        oracle = await program.account.oraclePrices.fetch(oracleAccount);
         let price = oracle.prices[10].price;
         let value = price.value.toNumber();
         let expo = price.exp.toNumber();
