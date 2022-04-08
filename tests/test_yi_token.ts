@@ -16,7 +16,7 @@ import { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import chaiDecimalJs from 'chai-decimaljs';
 import * as global from './global';
-import { PriceType, Tokens, createFakeAccounts } from './utils';
+import { PriceType, Tokens, createFakeAccounts, mapAnchorError } from './utils';
 
 chai.use(chaiAsPromised);
 chai.use(chaiDecimalJs(Decimal));
@@ -253,18 +253,20 @@ describe('Yi Scope tests', () => {
   it('test_update_Yi_price_fails_for_non_Yi_tokens', async () => {
     await Promise.all(
       initialTokens.map(async (tokenData, idx) => {
-        let nonYiTokenUpdate = program.rpc.refreshYiToken(new BN(idx), {
-          accounts: {
-            oraclePrices: oracleAccount,
-            oracleMappings: oracleMappingAccount,
-            yiUnderlyingTokens: YI_UNDERLYING_TOKENS,
-            yiMint: YI_MINT,
-            clock: SYSVAR_CLOCK_PUBKEY,
-          },
-          signers: [],
-        });
+        let nonYiTokenUpdate = mapAnchorError(
+          program.rpc.refreshYiToken(new BN(idx), {
+            accounts: {
+              oraclePrices: oracleAccount,
+              oracleMappings: oracleMappingAccount,
+              yiUnderlyingTokens: YI_UNDERLYING_TOKENS,
+              yiMint: YI_MINT,
+              clock: SYSVAR_CLOCK_PUBKEY,
+            },
+            signers: [],
+          })
+        );
         if (tokenData.priceType != PriceType.YiToken) {
-          await expect(nonYiTokenUpdate).to.be.rejected;
+          await expect(nonYiTokenUpdate).to.be.rejectedWith('6008: The token type received is invalid');
           console.log(`Failed as expected for non-Yi token: ${tokenData.ticker}`);
         }
       })
