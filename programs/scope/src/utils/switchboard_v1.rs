@@ -1,12 +1,9 @@
 use crate::{DatedPrice, Price, Result, ScopeError};
 use anchor_lang::prelude::*;
 
-
 use switchboard_program::{
     get_aggregator, get_aggregator_result, AggregatorState, RoundResult, SwitchboardAccountType,
 };
-
-
 
 pub fn get_price(switchboard_feed_info: &AccountInfo) -> Result<DatedPrice> {
     //const STALE_AFTER_SLOTS_ELAPSED: u64 = 240;
@@ -27,7 +24,6 @@ pub fn get_price(switchboard_feed_info: &AccountInfo) -> Result<DatedPrice> {
     let exp = 8u32;
     let price_quotient: f64 = 10u64.pow(exp) as f64;
     let price: u64 = (price_quotient * price_float) as u64;
-
 
     Ok(DatedPrice {
         price: Price {

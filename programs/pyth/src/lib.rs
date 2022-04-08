@@ -6,7 +6,7 @@ use switchboard_program::{
     mod_AggregatorState, AggregatorState, RoundResult, SwitchboardAccountType,
 };
 
-use borsh::{BorshSerialize, BorshDeserialize};
+use borsh::{BorshDeserialize, BorshSerialize};
 use quick_protobuf::deserialize_from_slice;
 use quick_protobuf::serialize_into_slice;
 
@@ -16,14 +16,14 @@ declare_id!(PROGRAM_ID);
 
 #[program]
 pub mod pyth {
-    
+
     use std::convert::TryInto;
     use std::ops::Div;
-    
+
     use switchboard_v2::AggregatorAccountData;
-    
-    use switchboard_v2::decimal::SwitchboardDecimal;
+
     use super::*;
+    use switchboard_v2::decimal::SwitchboardDecimal;
     pub fn initialize(ctx: Context<Initialize>, price: i64, expo: i32, conf: u64) -> ProgramResult {
         let oracle = &ctx.accounts.price;
 
@@ -43,30 +43,41 @@ pub mod pyth {
         let slot = ctx.accounts.clock.slot;
         price_oracle.valid_slot = slot;
 
-        msg!("Price {} initialized to {}, expo {}, conf {} at slot {}", oracle.key, price, expo, conf, slot);
+        msg!(
+            "Price {} initialized to {}, expo {}, conf {} at slot {}",
+            oracle.key,
+            price,
+            expo,
+            conf,
+            slot
+        );
 
         Ok(())
     }
 
-    pub fn initialize_switchboard_v1(ctx: Context<Initialize>, mantissa: i128, scale: u32) -> ProgramResult {
+    pub fn initialize_switchboard_v1(
+        ctx: Context<Initialize>,
+        mantissa: i128,
+        scale: u32,
+    ) -> ProgramResult {
         let mut account_data = ctx.accounts.price.data.borrow_mut();
         account_data[0] = SwitchboardAccountType::TYPE_AGGREGATOR as u8;
 
-        let configs = Some(mod_AggregatorState::Configs{
+        let configs = Some(mod_AggregatorState::Configs {
             min_confirmations: Some(3),
-          ..mod_AggregatorState::Configs::default()
+            ..mod_AggregatorState::Configs::default()
         });
         let mantissa_f64 = mantissa as f64;
         let denominator = (10u128.pow(scale)) as f64;
         let price = mantissa_f64.div(denominator);
         let slot = ctx.accounts.clock.slot;
-        let last_round_result = Some(RoundResult{
+        let last_round_result = Some(RoundResult {
             num_success: Some(3),
             result: Some(price),
             round_open_slot: Some(slot),
             ..RoundResult::default()
         });
-        let aggregator_state = AggregatorState{
+        let aggregator_state = AggregatorState {
             last_round_result,
             configs,
             ..AggregatorState::default()
@@ -79,23 +90,28 @@ pub mod pyth {
         Ok(())
     }
 
-
-    pub fn initialize_switchboard_v2(ctx: Context<Initialize>, mantissa: i128, scale: u32) -> ProgramResult {
+    pub fn initialize_switchboard_v2(
+        ctx: Context<Initialize>,
+        mantissa: i128,
+        scale: u32,
+    ) -> ProgramResult {
         let mut account_data = ctx.accounts.price.data.borrow_mut();
-        let discriminator: [u8;8] = [217, 230, 65, 101, 201, 162, 27, 125];
+        let discriminator: [u8; 8] = [217, 230, 65, 101, 201, 162, 27, 125];
         let _ = account_data[..8].copy_from_slice(&discriminator);
-        let aggregator_account_data : &mut AggregatorAccountData = bytemuck::from_bytes_mut(&mut account_data[8..]);
-        aggregator_account_data.latest_confirmed_round.result = SwitchboardDecimal::new(mantissa, scale);
+        let aggregator_account_data: &mut AggregatorAccountData =
+            bytemuck::from_bytes_mut(&mut account_data[8..]);
+        aggregator_account_data.latest_confirmed_round.result =
+            SwitchboardDecimal::new(mantissa, scale);
         let slot = ctx.accounts.clock.slot;
-        aggregator_account_data.latest_confirmed_round.round_open_slot = slot;
+        aggregator_account_data
+            .latest_confirmed_round
+            .round_open_slot = slot;
         aggregator_account_data.latest_confirmed_round.num_success = 3;
         aggregator_account_data.min_oracle_results = 3;
         let key = &ctx.accounts.price.key.to_string();
         msg!("Switchboard V2 price {} initialized at slot {}", key, slot);
         Ok(())
     }
-
-
 
     pub fn set_price(ctx: Context<SetPrice>, price: i64) -> ProgramResult {
         let oracle = &ctx.accounts.price;
@@ -109,9 +125,14 @@ pub mod pyth {
         Ok(())
     }
 
-    pub fn set_price_switchboard_v1(ctx: Context<SetPrice>, mantissa: i128, scale: u32) -> ProgramResult {
+    pub fn set_price_switchboard_v1(
+        ctx: Context<SetPrice>,
+        mantissa: i128,
+        scale: u32,
+    ) -> ProgramResult {
         let mut account_data = ctx.accounts.price.data.borrow_mut();
-        let mut aggregator_state: AggregatorState = deserialize_from_slice(&account_data[1..]).unwrap();
+        let mut aggregator_state: AggregatorState =
+            deserialize_from_slice(&account_data[1..]).unwrap();
         let mantissa_f64 = mantissa as f64;
         let denominator = (10u128.pow(scale)) as f64;
         let price = mantissa_f64.div(denominator);
@@ -127,12 +148,20 @@ pub mod pyth {
         Ok(())
     }
 
-    pub fn set_price_switchboard_v2(ctx: Context<SetPrice>, mantissa: i128, scale: u32) -> ProgramResult {
+    pub fn set_price_switchboard_v2(
+        ctx: Context<SetPrice>,
+        mantissa: i128,
+        scale: u32,
+    ) -> ProgramResult {
         let mut account_data = ctx.accounts.price.data.borrow_mut();
-        let aggregator_account_data : &mut AggregatorAccountData = bytemuck::from_bytes_mut(&mut account_data[8..]);
-        aggregator_account_data.latest_confirmed_round.result = SwitchboardDecimal::new(mantissa, scale);
+        let aggregator_account_data: &mut AggregatorAccountData =
+            bytemuck::from_bytes_mut(&mut account_data[8..]);
+        aggregator_account_data.latest_confirmed_round.result =
+            SwitchboardDecimal::new(mantissa, scale);
         let slot = ctx.accounts.clock.slot;
-        aggregator_account_data.latest_confirmed_round.round_open_slot = slot;
+        aggregator_account_data
+            .latest_confirmed_round
+            .round_open_slot = slot;
         let key = &ctx.accounts.price.key.to_string();
         msg!("Switchboard V2 Price {} updated at slot {}", key, slot);
 
@@ -183,4 +212,3 @@ pub struct Initialize<'info> {
     pub price: AccountInfo<'info>,
     pub clock: Sysvar<'info, Clock>,
 }
-
