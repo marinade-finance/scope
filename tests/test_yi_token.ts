@@ -16,30 +16,9 @@ import * as chai from 'chai';
 import {expect} from 'chai';
 import chaiDecimalJs from 'chai-decimaljs';
 import * as global from './global';
+import {PriceType, Tokens} from "./utils";
 
 chai.use(chaiDecimalJs(Decimal));
-
-
-enum Tokens {
-    SOL = 0,
-    ETH,
-    BTC,
-    SRM,
-    RAY,
-    FTT,
-    MSOL,
-    UST,
-    BNB,
-    AVAX,
-    STSOLUST
-}
-
-enum PriceType {
-    Pyth = 0,
-    SwitchboardV1 = 1,
-    YiToken = 2,
-    SwitchboardV2 = 3,
-}
 
 const initialTokens = [
     {
@@ -109,6 +88,7 @@ const initialTokens = [
         priceType: PriceType.YiToken
     },
 ]
+
 
 const PRICE_FEED = "yi_test_feed"
 

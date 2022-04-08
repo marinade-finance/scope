@@ -16,34 +16,9 @@ import * as chai from 'chai';
 import {expect} from 'chai';
 import chaiDecimalJs from 'chai-decimaljs';
 import * as global from './global';
+import {PriceType, Tokens, createFakeAccounts} from "./utils";
 
 chai.use(chaiDecimalJs(Decimal));
-
-
-enum Tokens {
-    SOL = 0,
-    ETH,
-    BTC,
-    SRM,
-    RAY,
-    FTT,
-    MSOL,
-    UST,
-    BNB,
-    AVAX,
-    STSOLUST,
-    SABERMSOLSOL,
-    USDHUSD,
-    STSOLUSD
-
-}
-
-enum PriceType {
-    Pyth = 0,
-    SwitchboardV1 = 1,
-    YiToken = 2,
-    SwitchboardV2 = 3,
-}
 
 let initialTokens = [
     {
@@ -159,7 +134,6 @@ let initialTokens = [
         priceType: PriceType.SwitchboardV2
     },
 ]
-
 const PRICE_FEED = "oracle_test_feed"
 const MAX_NB_TOKENS_IN_ONE_UPDATE = 27;
 
@@ -192,7 +166,6 @@ describe("Scope tests", () => {
     const connection = new Connection('http://127.0.0.1:8899', config);
     const wallet = new NodeWallet(admin);
     const provider = new Provider(connection, wallet, Provider.defaultOptions());
-    const initialMarketOwner = provider.wallet.publicKey;
     setProvider(provider);
 
     const program = new Program(global.ScopeIdl, global.getScopeProgramId(), provider);
@@ -244,29 +217,7 @@ describe("Scope tests", () => {
 
         console.log('Initialize Tokens pyth prices and oracle mappings');
 
-        fakePythAccounts = await Promise.all(initialTokens.map(async (asset): Promise<any> => {
-            console.log(`Adding ${asset.ticker.toString()}`)
-
-            if (asset.priceType == PriceType.Pyth || asset.priceType == PriceType.YiToken) {
-                return await pythUtils.createPriceFeed({
-                    oracleProgram: fakePythProgram,
-                    initPrice: asset.price,
-                    expo: -asset.decimals
-                })
-            } else if (asset.priceType == PriceType.SwitchboardV1) {
-                return await pythUtils.createPriceFeedSwitchboardV1({
-                    oracleProgram: fakePythProgram,
-                    mantissa: asset.mantissa,
-                    scale: asset.expo
-                })
-            } else if (asset.priceType == PriceType.SwitchboardV2) {
-                return await pythUtils.createPriceFeedSwitchboardV2({
-                    oracleProgram: fakePythProgram,
-                    mantissa: asset.mantissa,
-                    scale: asset.expo,
-                })
-            }
-        }));
+        fakePythAccounts =  await createFakeAccounts(fakePythProgram, initialTokens);
 
         const range = Array.from(Array(MAX_NB_TOKENS_IN_ONE_UPDATE).keys());
         fakePythAccounts2 = await Promise.all(range.map(async (idx): Promise<any> => {

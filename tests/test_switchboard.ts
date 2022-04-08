@@ -1,4 +1,3 @@
-import * as pythUtils from "./pyth_utils";
 import {setFeedPriceSwitchboardV1, setFeedPriceSwitchboardV2} from "./pyth_utils";
 import {
     Connection,
@@ -16,36 +15,12 @@ import * as chai from 'chai';
 import {expect} from 'chai';
 import chaiDecimalJs from 'chai-decimaljs';
 import * as global from './global';
+import {createFakeAccounts, PriceType, Tokens} from "./utils";
 
 require('dotenv').config();
 
 chai.use(chaiDecimalJs(Decimal));
 
-
-enum Tokens {
-    SOL = 0,
-    ETH,
-    BTC,
-    SRM,
-    RAY,
-    FTT,
-    MSOL,
-    UST,
-    BNB,
-    AVAX,
-    STSOLUST,
-    SABERMSOLSOL,
-    USDHUSD,
-    STSOLUSD
-
-}
-
-enum PriceType {
-    Pyth = 0,
-    SwitchboardV1 = 1,
-    YiToken = 2,
-    SwitchboardV2 = 3,
-}
 
 let initialTokens = [
     {
@@ -191,7 +166,7 @@ describe("Switchboard Scope tests", () => {
     const program = new Program(global.ScopeIdl, global.getScopeProgramId(), provider);
 
     const fakePythProgram = new Program(global.FakePythIdl, global.getFakePythProgramId(), provider);
-    let fakePythAccounts: Array<PublicKey>;
+    let fakeAccounts: Array<PublicKey>;
     // let fakePythAccounts2: Array<PublicKey>; // Used to overflow oracle capacity
 
     let programDataAddress: PublicKey;
@@ -237,33 +212,11 @@ describe("Switchboard Scope tests", () => {
 
         console.log('Initialize Tokens pyth prices and oracle mappings');
 
-        fakePythAccounts = await Promise.all(initialTokens.map(async (asset): Promise<any> => {
-            console.log(`Adding ${asset.ticker.toString()}`)
-
-            if (asset.priceType == PriceType.Pyth || asset.priceType == PriceType.YiToken) {
-                return await pythUtils.createPriceFeed({
-                    oracleProgram: fakePythProgram,
-                    initPrice: asset.price,
-                    expo: -asset.decimals
-                })
-            } else if (asset.priceType == PriceType.SwitchboardV1) {
-                return await pythUtils.createPriceFeedSwitchboardV1({
-                    oracleProgram: fakePythProgram,
-                    mantissa: asset.mantissa,
-                    scale: asset.expo
-                })
-            } else if (asset.priceType == PriceType.SwitchboardV2) {
-                return await pythUtils.createPriceFeedSwitchboardV2({
-                    oracleProgram: fakePythProgram,
-                    mantissa: asset.mantissa,
-                    scale: asset.expo,
-                })
-            }
-        }));
+        fakeAccounts = await createFakeAccounts(fakePythProgram, initialTokens);
     });
 
     it('test_set_oracle_mappings', async () => {
-        await Promise.all(fakePythAccounts.map(async (fakePythAccount, idx): Promise<any> => {
+        await Promise.all(fakeAccounts.map(async (fakePythAccount, idx): Promise<any> => {
             console.log(`Set mapping of ${initialTokens[idx].ticker}`)
 
             await program.rpc.updateMapping(
@@ -287,7 +240,7 @@ describe("Switchboard Scope tests", () => {
                 accounts: {
                     oraclePrices: oracleAccount,
                     oracleMappings: oracleMappingAccount,
-                    pythPriceInfo: fakePythAccounts[Tokens.STSOLUSD],
+                    pythPriceInfo: fakeAccounts[Tokens.STSOLUSD],
                     clock: SYSVAR_CLOCK_PUBKEY
                 },
                 signers: []
@@ -304,7 +257,7 @@ describe("Switchboard Scope tests", () => {
                 accounts: {
                     oraclePrices: oracleAccount,
                     oracleMappings: oracleMappingAccount,
-                    pythPriceInfo: fakePythAccounts[Tokens.SABERMSOLSOL],
+                    pythPriceInfo: fakeAccounts[Tokens.SABERMSOLSOL],
                     clock: SYSVAR_CLOCK_PUBKEY
                 },
                 signers: []
@@ -321,7 +274,7 @@ describe("Switchboard Scope tests", () => {
                 accounts: {
                     oraclePrices: oracleAccount,
                     oracleMappings: oracleMappingAccount,
-                    pythPriceInfo: fakePythAccounts[Tokens.USDHUSD],
+                    pythPriceInfo: fakeAccounts[Tokens.USDHUSD],
                     clock: SYSVAR_CLOCK_PUBKEY
                 },
                 signers: []
@@ -338,7 +291,7 @@ describe("Switchboard Scope tests", () => {
             fakePythProgram,
             mantissa,
             scale,
-            fakePythAccounts[Tokens.STSOLUSD]
+            fakeAccounts[Tokens.STSOLUSD]
         );
         initialTokens[Tokens.STSOLUSD].mantissa = mantissa;
         initialTokens[Tokens.STSOLUSD].expo = scale.toNumber();
@@ -348,7 +301,7 @@ describe("Switchboard Scope tests", () => {
                 accounts: {
                     oraclePrices: oracleAccount,
                     oracleMappings: oracleMappingAccount,
-                    pythPriceInfo: fakePythAccounts[Tokens.STSOLUSD],
+                    pythPriceInfo: fakeAccounts[Tokens.STSOLUSD],
                     clock: SYSVAR_CLOCK_PUBKEY
                 },
                 signers: []
@@ -365,7 +318,7 @@ describe("Switchboard Scope tests", () => {
             fakePythProgram,
             mantissa,
             scale,
-            fakePythAccounts[Tokens.SABERMSOLSOL]
+            fakeAccounts[Tokens.SABERMSOLSOL]
         );
         initialTokens[Tokens.SABERMSOLSOL].mantissa = mantissa;
         initialTokens[Tokens.SABERMSOLSOL].expo = scale.toNumber();
@@ -375,7 +328,7 @@ describe("Switchboard Scope tests", () => {
                 accounts: {
                     oraclePrices: oracleAccount,
                     oracleMappings: oracleMappingAccount,
-                    pythPriceInfo: fakePythAccounts[Tokens.SABERMSOLSOL],
+                    pythPriceInfo: fakeAccounts[Tokens.SABERMSOLSOL],
                     clock: SYSVAR_CLOCK_PUBKEY
                 },
                 signers: []
@@ -392,7 +345,7 @@ describe("Switchboard Scope tests", () => {
             fakePythProgram,
             mantissa,
             scale,
-            fakePythAccounts[Tokens.USDHUSD]
+            fakeAccounts[Tokens.USDHUSD]
         );
         initialTokens[Tokens.USDHUSD].mantissa = mantissa;
         initialTokens[Tokens.USDHUSD].expo = scale.toNumber();
@@ -402,7 +355,7 @@ describe("Switchboard Scope tests", () => {
                 accounts: {
                     oraclePrices: oracleAccount,
                     oracleMappings: oracleMappingAccount,
-                    pythPriceInfo: fakePythAccounts[Tokens.USDHUSD],
+                    pythPriceInfo: fakeAccounts[Tokens.USDHUSD],
                     clock: SYSVAR_CLOCK_PUBKEY
                 },
                 signers: []
