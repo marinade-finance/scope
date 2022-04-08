@@ -264,7 +264,7 @@ describe('Yi Scope tests', () => {
           signers: [],
         });
         if (tokenData.priceType != PriceType.YiToken) {
-          await expect(nonYiTokenUpdate).to.be.rejectedWith('6008: The token type received is invalid');
+          await expect(nonYiTokenUpdate).to.be.rejected;
           console.log(`Failed as expected for non-Yi token: ${tokenData.ticker}`);
         }
       })
