@@ -167,7 +167,6 @@ describe('Switchboard Scope tests', () => {
 
   const fakePythProgram = new Program(global.FakePythIdl, global.getFakePythProgramId(), provider);
   let fakeAccounts: Array<PublicKey>;
-  // let fakePythAccounts2: Array<PublicKey>; // Used to overflow oracle capacity
 
   let programDataAddress: PublicKey;
   let confAccount: PublicKey;
