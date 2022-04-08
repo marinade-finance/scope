@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_lang::solana_program::clock;
 use anchor_spl::token::{TokenAccount, Mint};
 use crate::{DatedPrice, Price, ScopeError, Result};
-use crate::utils::PriceType;
+
 
 pub fn get_price(yi_underlying_tokens: &Account<TokenAccount>,
                  yi_mint: &Account<Mint>, clock_slot: clock::Slot) -> Result<DatedPrice> {

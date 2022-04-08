@@ -1,11 +1,9 @@
 //use core::num::dec2flt::float::RawFloat;
 use crate::{DatedPrice, Price, Result, ScopeError};
 use anchor_lang::prelude::*;
-use pyth_client::{PriceStatus, PriceType};
-use std::convert::{TryFrom, TryInto};
-use switchboard_program::{
-    get_aggregator, get_aggregator_result, AggregatorState, RoundResult, SwitchboardAccountType,
-};
+
+
+
 use switchboard_v2::AggregatorAccountData;
 
 pub fn get_price(

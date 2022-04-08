@@ -3,9 +3,9 @@ pub mod pc;
 
 use pc::{Price, PriceStatus};
 use switchboard_program::{
-    get_aggregator, get_aggregator_result, mod_AggregatorState, AggregatorState, RoundResult, SwitchboardAccountType,
+    mod_AggregatorState, AggregatorState, RoundResult, SwitchboardAccountType,
 };
-use bytemuck::{cast_slice_mut, from_bytes_mut, try_cast_slice_mut, Pod, Zeroable};
+
 use borsh::{BorshSerialize, BorshDeserialize};
 use quick_protobuf::deserialize_from_slice;
 use quick_protobuf::serialize_into_slice;
@@ -16,12 +16,12 @@ declare_id!(PROGRAM_ID);
 
 #[program]
 pub mod pyth {
-    use std::cell::RefMut;
+    
     use std::convert::TryInto;
     use std::ops::Div;
-    use anchor_lang::solana_program::clock::Slot;
+    
     use switchboard_v2::AggregatorAccountData;
-    use switchboard_v2::aggregator::{AggregatorRound, Hash};
+    
     use switchboard_v2::decimal::SwitchboardDecimal;
     use super::*;
     pub fn initialize(ctx: Context<Initialize>, price: i64, expo: i32, conf: u64) -> ProgramResult {
@@ -83,7 +83,7 @@ pub mod pyth {
     pub fn initialize_switchboard_v2(ctx: Context<Initialize>, mantissa: i128, scale: u32) -> ProgramResult {
         let mut account_data = ctx.accounts.price.data.borrow_mut();
         let discriminator: [u8;8] = [217, 230, 65, 101, 201, 162, 27, 125];
-        &account_data[..8].copy_from_slice(&discriminator);
+        let _ = account_data[..8].copy_from_slice(&discriminator);
         let aggregator_account_data : &mut AggregatorAccountData = bytemuck::from_bytes_mut(&mut account_data[8..]);
         aggregator_account_data.latest_confirmed_round.result = SwitchboardDecimal::new(mantissa, scale);
         let slot = ctx.accounts.clock.slot;

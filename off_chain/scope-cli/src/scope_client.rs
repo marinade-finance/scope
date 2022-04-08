@@ -127,7 +127,7 @@ impl ScopeClient {
             }
             self.oracle_mappings[idx] = Some(token.oracle_mapping);
             self.token_pairs[idx] = token.token_pair.clone();
-            self.token_price_type[idx] = token.price_type.clone();
+            self.token_price_type[idx] = token.price_type;
         }
         Ok(())
     }
@@ -308,7 +308,7 @@ impl ScopeClient {
             .filter_map(|(idx, ((dp, mapping_op), _))| mapping_op.map(|_| (idx, dp.price)))
             .collect();
 
-        if prices.len() == 0 {
+        if prices.is_empty() {
             info!("No Yi Token to refresh");
             return Ok(())
         };
