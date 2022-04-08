@@ -1,4 +1,3 @@
-//use core::num::dec2flt::float::RawFloat;
 use crate::{DatedPrice, Price, Result, ScopeError};
 use anchor_lang::prelude::*;
 
