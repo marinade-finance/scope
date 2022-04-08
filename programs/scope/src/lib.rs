@@ -1,5 +1,3 @@
-extern crate core;
-
 pub use anchor_lang::prelude::*;
 use num_enum::{TryFromPrimitive, TryFromPrimitiveError};
 use std::convert::TryInto;
