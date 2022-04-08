@@ -264,7 +264,7 @@ impl ScopeClient {
             let price_slot = chunk[0].1;
             let age = current_slot
                 .checked_sub(price_slot)
-                .ok_or(anyhow!("Some prices have been updated in the future"))?;
+                .ok_or_else(|| anyhow!("Some prices have been updated in the future"))?;
 
             if age >= max_age {
                 let price_ids: Vec<_> = chunk
@@ -368,7 +368,7 @@ impl ScopeClient {
         let age = clock
             .slot
             .checked_sub(oldest_price_slot)
-            .ok_or(anyhow!("Some prices have been updated in the future"))?;
+            .ok_or_else(|| anyhow!("Some prices have been updated in the future"))?;
 
         Ok(age)
     }
@@ -535,7 +535,7 @@ impl ScopeClient {
         let oracle_account = self
             .oracle_mappings
             .get(usize::try_from(token)?)
-            .ok_or(anyhow!("Out of range token {token}"))?
+            .ok_or_else(|| anyhow!("Out of range token {token}"))?
             .unwrap_or_default();
         let refresh_account = accounts::RefreshOne {
             oracle_prices: self.oracle_prices_acc,
@@ -572,7 +572,7 @@ impl ScopeClient {
             let oracle_pubkey_op = self
                 .oracle_mappings
                 .get(usize::from(*token_idx))
-                .ok_or(anyhow!("Out of range token {token_idx}"))?;
+                .ok_or_else(|| anyhow!("Out of range token {token_idx}"))?;
 
             if let Some(oracle_pubkey) = oracle_pubkey_op {
                 request = request.accounts(AccountMeta::new_readonly(*oracle_pubkey, false));

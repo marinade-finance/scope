@@ -82,7 +82,7 @@ pub mod pyth {
             configs,
             ..AggregatorState::default()
         };
-        serialize_into_slice(&aggregator_state, &mut account_data[1..]);
+        serialize_into_slice(&aggregator_state, &mut account_data[1..]).unwrap();
         //let _ = switchboard_program::get_aggregator(&ctx.accounts.price).unwrap();
         let key = &ctx.accounts.price.key.to_string();
         msg!("Switchboard V1 price {} initialized at slot {}", key, slot);
@@ -141,7 +141,7 @@ pub mod pyth {
         let slot = ctx.accounts.clock.slot;
         last_round_result.round_open_slot = Some(slot);
         aggregator_state.last_round_result = Some(last_round_result);
-        serialize_into_slice(&aggregator_state, &mut account_data[1..]);
+        serialize_into_slice(&aggregator_state, &mut account_data[1..]).unwrap();
         let key = &ctx.accounts.price.key.to_string();
         msg!("Switchboard V1 Price {} updated to at slot {}", key, slot);
 
