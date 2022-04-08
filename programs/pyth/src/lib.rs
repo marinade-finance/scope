@@ -19,6 +19,7 @@ pub mod pyth {
     use std::cell::RefMut;
     use std::convert::TryInto;
     use std::ops::Div;
+    use anchor_lang::solana_program::clock::Slot;
     use switchboard_v2::AggregatorAccountData;
     use switchboard_v2::aggregator::{AggregatorRound, Hash};
     use switchboard_v2::decimal::SwitchboardDecimal;
@@ -42,6 +43,8 @@ pub mod pyth {
         let slot = ctx.accounts.clock.slot;
         price_oracle.valid_slot = slot;
 
+        msg!("Price {} initialized to {}, expo {}, conf {} at slot {}", oracle.key, price, expo, conf, slot);
+
         Ok(())
     }
 
@@ -56,10 +59,11 @@ pub mod pyth {
         let mantissa_f64 = mantissa as f64;
         let denominator = (10u128.pow(scale)) as f64;
         let price = mantissa_f64.div(denominator);
+        let slot = ctx.accounts.clock.slot;
         let last_round_result = Some(RoundResult{
             num_success: Some(3),
             result: Some(price),
-            round_open_slot: Some(0),
+            round_open_slot: Some(slot),
             ..RoundResult::default()
         });
         let aggregator_state = AggregatorState{
@@ -69,6 +73,8 @@ pub mod pyth {
         };
         serialize_into_slice(&aggregator_state, &mut account_data[1..]);
         //let _ = switchboard_program::get_aggregator(&ctx.accounts.price).unwrap();
+        let key = &ctx.accounts.price.key.to_string();
+        msg!("Switchboard V1 price {} initialized at slot {}", key, slot);
 
         Ok(())
     }
@@ -80,8 +86,12 @@ pub mod pyth {
         &account_data[..8].copy_from_slice(&discriminator);
         let aggregator_account_data : &mut AggregatorAccountData = bytemuck::from_bytes_mut(&mut account_data[8..]);
         aggregator_account_data.latest_confirmed_round.result = SwitchboardDecimal::new(mantissa, scale);
+        let slot = ctx.accounts.clock.slot;
+        aggregator_account_data.latest_confirmed_round.round_open_slot = slot;
         aggregator_account_data.latest_confirmed_round.num_success = 3;
         aggregator_account_data.min_oracle_results = 3;
+        let key = &ctx.accounts.price.key.to_string();
+        msg!("Switchboard V2 price {} initialized at slot {}", key, slot);
         Ok(())
     }
 
@@ -107,8 +117,12 @@ pub mod pyth {
         let price = mantissa_f64.div(denominator);
         let mut last_round_result = aggregator_state.last_round_result.unwrap();
         last_round_result.result = Some(price);
+        let slot = ctx.accounts.clock.slot;
+        last_round_result.round_open_slot = Some(slot);
         aggregator_state.last_round_result = Some(last_round_result);
         serialize_into_slice(&aggregator_state, &mut account_data[1..]);
+        let key = &ctx.accounts.price.key.to_string();
+        msg!("Switchboard V1 Price {} updated to at slot {}", key, slot);
 
         Ok(())
     }
@@ -117,6 +131,10 @@ pub mod pyth {
         let mut account_data = ctx.accounts.price.data.borrow_mut();
         let aggregator_account_data : &mut AggregatorAccountData = bytemuck::from_bytes_mut(&mut account_data[8..]);
         aggregator_account_data.latest_confirmed_round.result = SwitchboardDecimal::new(mantissa, scale);
+        let slot = ctx.accounts.clock.slot;
+        aggregator_account_data.latest_confirmed_round.round_open_slot = slot;
+        let key = &ctx.accounts.price.key.to_string();
+        msg!("Switchboard V2 Price {} updated at slot {}", key, slot);
 
         Ok(())
     }

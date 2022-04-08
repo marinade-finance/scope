@@ -243,7 +243,7 @@ impl ScopeClient {
             .zip(self.oracle_mappings)
             .zip(self.token_price_type)// Iterate with mappings to ensure the price is usable
             .enumerate()
-            .filter(|(_, ((_, _), price_type))| *price_type == PriceType::Pyth)// keep track of indexes, needed for refresh
+            .filter(|(_, ((_, _), price_type))| *price_type != PriceType::YiToken)// keep track of indexes, needed for refresh
             .filter_map(|(idx, ((dp, mapping_op), _))| mapping_op.map(|_| (idx, dp.last_updated_slot)))
             .collect();
 

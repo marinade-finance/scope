@@ -11,7 +11,6 @@ import {
 import {BN, Program, Provider, setProvider} from "@project-serum/anchor"
 import {sleep} from '@project-serum/common';
 import NodeWallet from '@project-serum/anchor/dist/cjs/nodewallet';
-import * as pythUtils from './pyth_utils';
 import {Decimal} from 'decimal.js';
 import * as chai from 'chai';
 import {expect} from 'chai';
@@ -19,6 +18,8 @@ import chaiDecimalJs from 'chai-decimaljs';
 import * as global from './global';
 import * as bot from './bot_utils';
 import {TOKEN_PROGRAM_ID} from "@project-serum/serum/lib/token-instructions";
+import {createFakeAccounts, PriceType} from "./utils";
+import * as pythUtils from "./pyth_utils";
 
 require('dotenv').config();
 
@@ -29,89 +30,114 @@ let tokenList = [
         price: new Decimal('228.41550900'),
         ticker: Buffer.from('SOL'),
         decimals: 8,
-        priceType: 0
+        priceType: PriceType.Pyth,
+        mantissa: new BN(0),
+        expo: 1
     },
     {
         price: new Decimal('4726.59830000'),
         ticker: Buffer.from('ETH'),
         decimals: 8,
-        priceType: 0
+        priceType: PriceType.Pyth,
+        mantissa: new BN(0),
+        expo: 1
     },
     {
         price: new Decimal('64622.36900000'),
         ticker: Buffer.from('BTC'),
         decimals: 8,
-        priceType: 0
+        priceType: PriceType.Pyth,
+        mantissa: new BN(0),
+        expo: 1
     },
     {
         price: new Decimal('7.06975570'),
         ticker: Buffer.from('SRM'),
         decimals: 8,
-        priceType: 0
+        priceType: PriceType.Pyth,
+        mantissa: new BN(0),
+        expo: 1
     },
     {
         price: new Decimal('11.10038050'),
         ticker: Buffer.from('RAY'),
         decimals: 8,
-        priceType: 0
+        priceType: PriceType.Pyth,
+        mantissa: new BN(0),
+        expo: 1
     },
     {
         price: new Decimal('59.17104600'),
         ticker: Buffer.from('FTT'),
         decimals: 8,
-        priceType: 0
+        priceType: PriceType.Pyth,
+        mantissa: new BN(0),
+        expo: 1
     },
     {
         price: new Decimal('253.41550900'),
         ticker: Buffer.from('MSOL'),
         decimals: 8,
-        priceType: 0
+        priceType: PriceType.Pyth,
+        mantissa: new BN(0),
+        expo: 1
     },
     {
         price: new Decimal('228.415509'),
         ticker: Buffer.from('UST'),
         decimals: 8,
-        priceType: 0
+        priceType: PriceType.Pyth,
+        mantissa: new BN(0),
+        expo: 1
     },
     {
         price: new Decimal('11.10038050'),
         ticker: Buffer.from('BNB'),
         decimals: 8,
-        priceType: 0
+        priceType: PriceType.Pyth,
+        mantissa: new BN(0),
+        expo: 1
     },
     {
         price: new Decimal('59.17104600'),
         ticker: Buffer.from('AVAX'),
         decimals: 8,
-        priceType: 0
+        priceType: PriceType.Pyth,
+        mantissa: new BN(0),
+        expo: 1
     },
     {
         price: new Decimal('0.90987600'),
         ticker: Buffer.from('STSOLUST'),
         decimals: 8,
-        priceType: 2
+        priceType: PriceType.YiToken,
+        mantissa: new BN(0),
+        expo: 1
     },
-    // {
-    //     price: new Decimal('474.00324002'),
-    //     ticker: Buffer.from('STSOL/USD'),
-    //     decimals: 8,
-    //     priceType: 1,
-    //     tempacc: '9LNYQZLJG5DAyeACCTzBFG6H3sDhehP5xtYLdhrZtQkA'
-    // },
-    // {
-    //     price: new Decimal('343.92109348'),
-    //     ticker: Buffer.from('SaberMSOL/SOL'),
-    //     decimals: 8,
-    //     priceType: 3,
-    //     tempacc: '2CpB8n1hntXDCQ3E7wEARZH8S8mrtdpZhG2FdYZs8NoU'
-    // },
-    // {
-    //     price: new Decimal('999.20334456'),
-    //     ticker: Buffer.from('USDH/USD'),
-    //     decimals: 8,
-    //     priceType: 3,
-    //     tempacc: '37NFcKPTgqUVx3gwTQ4c2Q94oJWk2xZy3NQUXtDixReb'
-    // },
+    {
+        price: new Decimal('343.92109348'),
+        ticker: Buffer.from('SABERMSOLSOL'),
+        decimals: 8,
+        priceType: PriceType.SwitchboardV1,
+        mantissa: new BN('34392109348'),
+        expo: 8
+    },
+    {
+        price: new Decimal('999.20334456'),
+        ticker: Buffer.from('USDHUSD'),
+        decimals: 8,
+        priceType: PriceType.SwitchboardV1,
+        mantissa: new BN('99920334456'),
+        expo: 8
+    },
+    {
+        mantissa: new BN('474003240021234567'),
+        expo: 15,
+        ticker: Buffer.from('STSOLUSD'),
+        price: new Decimal('474.003240021234567'),
+        decimals: 8,
+        priceType: PriceType.SwitchboardV2
+    },
 ]
 
 const PRICE_FEED = "crank_test_feed"
@@ -129,12 +155,20 @@ function getRevisedIndex(token: number): number {
 function checkAllOraclePrices(oraclePrices: any) {
     console.log(`Check all prices`)
     tokenList.map((tokenData, idx) => {
-        let price = oraclePrices.prices[getRevisedIndex(idx)].price;
-        let value = price.value.toNumber();
-        let expo = price.exp.toNumber();
-        let in_decimal = new Decimal(value).mul((new Decimal(10)).pow(new Decimal(-expo)));
-        if (idx != 10) {
-            expect(in_decimal).decimal.eq(tokenData.price);
+        if (tokenData.priceType == PriceType.SwitchboardV1 || tokenData.priceType == PriceType.SwitchboardV2) {
+            let price = oraclePrices.prices[getRevisedIndex(idx)].price;
+            let value = price.value.toString();
+            let expo = price.exp.toString();
+            expect(value).eq(tokenData.mantissa.toString());
+            expect(expo).eq(tokenData.expo.toString());
+        } else {
+            let price = oraclePrices.prices[getRevisedIndex(idx)].price;
+            let value = price.value.toNumber();
+            let expo = price.exp.toNumber();
+            let in_decimal = new Decimal(value).mul((new Decimal(10)).pow(new Decimal(-expo)));
+            if (idx != 10) {
+                expect(in_decimal).decimal.eq(tokenData.price);
+            }
         }
     });
 }
@@ -158,7 +192,7 @@ describe("Scope crank bot tests", () => {
     const program = new Program(global.ScopeIdl, global.getScopeProgramId(), provider);
 
     const fakePythProgram = new Program(global.FakePythIdl, global.getFakePythProgramId(), provider);
-    let fakePythAccounts: Array<PublicKey>;
+    let fakeAccounts: Array<PublicKey>;
 
     let programDataAddress: PublicKey;
     let confAccount: PublicKey;
@@ -167,11 +201,28 @@ describe("Scope crank bot tests", () => {
 
     const setAllPythPrices = async () => {
         await Promise.all(tokenList.map(async (asset, idx): Promise<any> => {
-            const oracleAddress = await pythUtils.setFeedPrice(
-                fakePythProgram,
-                asset.price,
-                fakePythAccounts[idx]
-            )
+            console.log(`set price for ${asset.ticker}`);
+            if (asset.priceType == PriceType.Pyth || asset.priceType == PriceType.YiToken) {
+                await pythUtils.setFeedPrice(
+                    fakePythProgram,
+                    asset.price,
+                    fakeAccounts[idx]
+                )
+            } else if (asset.priceType == PriceType.SwitchboardV1) {
+                await pythUtils.setFeedPriceSwitchboardV1(
+                    fakePythProgram,
+                    asset.mantissa,
+                    new BN(asset.expo),
+                    fakeAccounts[idx]
+                )
+            } else if (asset.priceType == PriceType.SwitchboardV2) {
+                await pythUtils.setFeedPriceSwitchboardV2(
+                    fakePythProgram,
+                    asset.mantissa,
+                    new BN(asset.expo),
+                    fakeAccounts[idx]
+                )
+            }
         }));
     }
 
@@ -227,19 +278,9 @@ describe("Scope crank bot tests", () => {
 
         console.log('Initialize Tokens pyth prices and oracle mappings');
 
-        fakePythAccounts = await Promise.all(tokenList.map(async (asset): Promise<any> => {
-            console.log(`Adding ${asset.ticker.toString()}`)
+        fakeAccounts = await createFakeAccounts(fakePythProgram, tokenList);
 
-            const oracleAddress = await pythUtils.createPriceFeed({
-                oracleProgram: fakePythProgram,
-                initPrice: asset.price,
-                expo: -asset.decimals
-            })
-
-            return oracleAddress;
-        }));
-
-        await Promise.all(fakePythAccounts.map(async (fakePythAccount, idx): Promise<any> => {
+        await Promise.all(fakeAccounts.map(async (fakePythAccount, idx): Promise<any> => {
             console.log(`Set mapping of ${tokenList[idx].ticker}`)
             await program.rpc.updateMapping(
                 new BN(getRevisedIndex(idx)), tokenList[idx].priceType,
@@ -283,6 +324,10 @@ describe("Scope crank bot tests", () => {
             // increase all prices at each loop
             for (var asset of tokenList) {
                 asset.price = asset.price.add(new Decimal('0.500'));
+                let scale = 10 ** asset.expo;
+                let mantissa_adding = new BN(scale).div(new BN(2));
+                asset.mantissa = asset.mantissa.add(mantissa_adding);
+                console.log(`asset price set ${asset.ticker} T:${asset.priceType} P:${asset.price} M:${asset.mantissa} E:${asset.expo} adder is ${mantissa_adding}`);
             }
             await setAllPythPrices();
 
