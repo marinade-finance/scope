@@ -1,5 +1,5 @@
 import { Program } from '@project-serum/anchor';
-import * as pythUtils from './pyth_utils';
+import * as pythUtils from './mock_account_utils';
 
 export enum Tokens {
   SOL = 0,

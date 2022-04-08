@@ -10,7 +10,7 @@ import {
 } from '@solana/web3.js';
 import { BN, Program, Provider, setProvider } from '@project-serum/anchor';
 import NodeWallet from '@project-serum/anchor/dist/cjs/nodewallet';
-import * as pythUtils from './pyth_utils';
+import * as pythUtils from './mock_account_utils';
 import { Decimal } from 'decimal.js';
 import * as chai from 'chai';
 import { expect } from 'chai';
@@ -246,7 +246,7 @@ describe('Scope tests', () => {
             program: program.programId,
             programData: programDataAddress,
             oracleMappings: oracleMappingAccount,
-            pythPriceInfo: fakePythAccount,
+            priceInfo: fakePythAccount,
           },
           signers: [admin],
         });
@@ -259,7 +259,7 @@ describe('Scope tests', () => {
       accounts: {
         oraclePrices: oracleAccount,
         oracleMappings: oracleMappingAccount,
-        pythPriceInfo: fakePythAccounts[Tokens.SRM],
+        priceInfo: fakePythAccounts[Tokens.SRM],
         clock: SYSVAR_CLOCK_PUBKEY,
       },
       signers: [],
@@ -308,7 +308,7 @@ describe('Scope tests', () => {
             program: program.programId,
             programData: programDataAddress,
             oracleMappings: oracleMappingAccount,
-            pythPriceInfo: fakePythAccount,
+            priceInfo: fakePythAccount,
           },
           signers: [admin],
         });

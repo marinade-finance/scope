@@ -9,7 +9,7 @@ pub struct RefreshOne<'info> {
     #[account()]
     pub oracle_mappings: AccountLoader<'info, crate::OracleMappings>,
     /// CHECK: In ix, check the account is in `oracle_mappings`
-    pub pyth_price_info: AccountInfo<'info>,
+    pub price_info: AccountInfo<'info>,
     pub clock: Sysvar<'info, Clock>,
 }
 
@@ -27,10 +27,10 @@ pub struct RefreshList<'info> {
 pub fn refresh_one_price(ctx: Context<RefreshOne>, token: usize) -> ProgramResult {
     msg!("refresh one price for token {}", token);
     let oracle_mappings = ctx.accounts.oracle_mappings.load()?;
-    let pyth_price_info = &ctx.accounts.pyth_price_info;
+    let price_info = &ctx.accounts.price_info;
 
     // Check that the provided pyth account is the one referenced in oracleMapping
-    if oracle_mappings.price_info_accounts[token] != pyth_price_info.key() {
+    if oracle_mappings.price_info_accounts[token] != price_info.key() {
         return Err(ScopeError::UnexpectedAccount.into());
     }
 
@@ -40,7 +40,7 @@ pub fn refresh_one_price(ctx: Context<RefreshOne>, token: usize) -> ProgramResul
 
     let mut oracle = ctx.accounts.oracle_prices.load_mut()?;
 
-    let price = get_price(price_type, pyth_price_info)?;
+    let price = get_price(price_type, price_info)?;
 
     oracle.prices[token] = price;
 

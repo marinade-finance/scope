@@ -10,7 +10,7 @@ import {
 } from '@solana/web3.js';
 import { BN, Program, Provider, setProvider } from '@project-serum/anchor';
 import NodeWallet from '@project-serum/anchor/dist/cjs/nodewallet';
-import * as pythUtils from './pyth_utils';
+import * as pythUtils from './mock_account_utils';
 import { Decimal } from 'decimal.js';
 import * as chai from 'chai';
 import { expect } from 'chai';
@@ -181,7 +181,7 @@ describe('Yi Scope tests', () => {
             program: program.programId,
             programData: programDataAddress,
             oracleMappings: oracleMappingAccount,
-            pythPriceInfo: fakePythAccount,
+            priceInfo: fakePythAccount,
           },
           signers: [admin],
         });

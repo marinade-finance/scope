@@ -19,7 +19,7 @@ import * as global from './global';
 import * as bot from './bot_utils';
 import { TOKEN_PROGRAM_ID } from '@project-serum/serum/lib/token-instructions';
 import { createFakeAccounts, PriceType } from './utils';
-import * as pythUtils from './pyth_utils';
+import * as pythUtils from './mock_account_utils';
 
 require('dotenv').config();
 
@@ -287,7 +287,7 @@ describe('Scope crank bot tests', () => {
             program: program.programId,
             programData: programDataAddress,
             oracleMappings: oracleMappingAccount,
-            pythPriceInfo: fakePythAccount,
+            priceInfo: fakePythAccount,
           },
           signers: [admin],
         });

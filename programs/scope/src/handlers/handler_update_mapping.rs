@@ -14,13 +14,13 @@ pub struct UpdateOracleMapping<'info> {
     #[account(mut)]
     pub oracle_mappings: AccountLoader<'info, OracleMappings>,
     /// CHECK: We trust the admin to provide a trustable account here.
-    pub pyth_price_info: AccountInfo<'info>,
+    pub price_info: AccountInfo<'info>,
 }
 
 pub fn process(ctx: Context<UpdateOracleMapping>, token: usize, price_type: u8) -> ProgramResult {
     check_context(&ctx)?;
 
-    let new_price_pubkey = ctx.accounts.pyth_price_info.key();
+    let new_price_pubkey = ctx.accounts.price_info.key();
     let mut oracle_mappings = ctx.accounts.oracle_mappings.load_mut()?;
     let current_price_pubkey = &mut oracle_mappings.price_info_accounts[token];
 
@@ -30,9 +30,9 @@ pub fn process(ctx: Context<UpdateOracleMapping>, token: usize, price_type: u8) 
     }
 
     if price_type == PriceType::Pyth as u8 {
-        let pyth_price_info = ctx.accounts.pyth_price_info.as_ref();
-        let pyth_price_data = pyth_price_info.try_borrow_data()?;
-        let pyth_price = pyth_client::cast::<pyth_client::Price>(&pyth_price_data);
+        let price_info = ctx.accounts.price_info.as_ref();
+        let price_data = price_info.try_borrow_data()?;
+        let pyth_price = pyth_client::cast::<pyth_client::Price>(&price_data);
 
         pyth::validate_pyth_price(pyth_price)?;
         // Every check succeeded, replace current with new

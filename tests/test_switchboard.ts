@@ -1,4 +1,4 @@
-import { setFeedPriceSwitchboardV1, setFeedPriceSwitchboardV2 } from './pyth_utils';
+import { setFeedPriceSwitchboardV1, setFeedPriceSwitchboardV2 } from './mock_account_utils';
 import {
   Connection,
   ConnectionConfig,
@@ -224,7 +224,7 @@ describe('Switchboard Scope tests', () => {
             program: program.programId,
             programData: programDataAddress,
             oracleMappings: oracleMappingAccount,
-            pythPriceInfo: fakePythAccount,
+            priceInfo: fakePythAccount,
           },
           signers: [admin],
         });
@@ -236,7 +236,7 @@ describe('Switchboard Scope tests', () => {
       accounts: {
         oraclePrices: oracleAccount,
         oracleMappings: oracleMappingAccount,
-        pythPriceInfo: fakeAccounts[Tokens.STSOLUSD],
+        priceInfo: fakeAccounts[Tokens.STSOLUSD],
         clock: SYSVAR_CLOCK_PUBKEY,
       },
       signers: [],
@@ -251,7 +251,7 @@ describe('Switchboard Scope tests', () => {
       accounts: {
         oraclePrices: oracleAccount,
         oracleMappings: oracleMappingAccount,
-        pythPriceInfo: fakeAccounts[Tokens.SABERMSOLSOL],
+        priceInfo: fakeAccounts[Tokens.SABERMSOLSOL],
         clock: SYSVAR_CLOCK_PUBKEY,
       },
       signers: [],
@@ -266,7 +266,7 @@ describe('Switchboard Scope tests', () => {
       accounts: {
         oraclePrices: oracleAccount,
         oracleMappings: oracleMappingAccount,
-        pythPriceInfo: fakeAccounts[Tokens.USDHUSD],
+        priceInfo: fakeAccounts[Tokens.USDHUSD],
         clock: SYSVAR_CLOCK_PUBKEY,
       },
       signers: [],
@@ -286,7 +286,7 @@ describe('Switchboard Scope tests', () => {
       accounts: {
         oraclePrices: oracleAccount,
         oracleMappings: oracleMappingAccount,
-        pythPriceInfo: fakeAccounts[Tokens.STSOLUSD],
+        priceInfo: fakeAccounts[Tokens.STSOLUSD],
         clock: SYSVAR_CLOCK_PUBKEY,
       },
       signers: [],
@@ -306,7 +306,7 @@ describe('Switchboard Scope tests', () => {
       accounts: {
         oraclePrices: oracleAccount,
         oracleMappings: oracleMappingAccount,
-        pythPriceInfo: fakeAccounts[Tokens.SABERMSOLSOL],
+        priceInfo: fakeAccounts[Tokens.SABERMSOLSOL],
         clock: SYSVAR_CLOCK_PUBKEY,
       },
       signers: [],
@@ -326,7 +326,7 @@ describe('Switchboard Scope tests', () => {
       accounts: {
         oraclePrices: oracleAccount,
         oracleMappings: oracleMappingAccount,
-        pythPriceInfo: fakeAccounts[Tokens.USDHUSD],
+        priceInfo: fakeAccounts[Tokens.USDHUSD],
         clock: SYSVAR_CLOCK_PUBKEY,
       },
       signers: [],
