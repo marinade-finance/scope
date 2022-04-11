@@ -5,6 +5,11 @@ use switchboard_program::{
     get_aggregator, get_aggregator_result, AggregatorState, RoundResult, SwitchboardAccountType,
 };
 
+
+const SWITCHBOARD_V1_PRICE_DECIMALS: u32 = 8u32;
+const PRICE_MULTIPLIER: f64 = 10u64.pow(SWITCHBOARD_V1_PRICE_DECIMALS) as f64;
+const MAX_PRICE_FLOAT: f64 = 10_000_000_000f64; //we choose an arbitrarily high number to do a sanity check and avoid overflow in the multiplication below
+
 pub fn get_price(switchboard_feed_info: &AccountInfo) -> Result<DatedPrice> {
     let account_buf = switchboard_feed_info.try_borrow_data()?;
     // first byte type discriminator
@@ -16,16 +21,18 @@ pub fn get_price(switchboard_feed_info: &AccountInfo) -> Result<DatedPrice> {
     let aggregator: AggregatorState = get_aggregator(switchboard_feed_info)?;
     let round_result: RoundResult = get_aggregator_result(&aggregator)?;
 
-    let price_float = round_result.result.unwrap_or(0.0);
+    let price_float = round_result.result.ok_or(ScopeError::PriceNotValid)?;
 
-    let exp = 8u32;
-    let price_quotient: f64 = 10u64.pow(exp) as f64;
-    let price: u64 = (price_quotient * price_float) as u64;
+    if price_float >= MAX_PRICE_FLOAT {
+        return Err(ScopeError::MathOverflow.into());
+    }
+    let price: u64 = (price_float * PRICE_MULTIPLIER) as u64;
+
 
     Ok(DatedPrice {
         price: Price {
             value: price,
-            exp: exp.into(),
+            exp: SWITCHBOARD_V1_PRICE_DECIMALS.into(),
         },
         last_updated_slot: round_result.round_open_slot.unwrap(),
         ..Default::default()
