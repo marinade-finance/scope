@@ -29,7 +29,11 @@ pub fn process(ctx: Context<UpdateOracleMapping>, token: usize, price_type: u8) 
         return Ok(());
     }
 
-    if price_type == PriceType::Pyth as u8 {
+    let price_type_enum: PriceType = price_type
+        .try_into()
+        .map_err(|_| ScopeError::BadTokenType)?;
+
+    if price_type_enum == PriceType::Pyth {
         let price_info = ctx.accounts.price_info.as_ref();
         let price_data = price_info.try_borrow_data()?;
         let pyth_price = pyth_client::cast::<pyth_client::Price>(&price_data);
@@ -40,9 +44,6 @@ pub fn process(ctx: Context<UpdateOracleMapping>, token: usize, price_type: u8) 
     *current_price_pubkey = new_price_pubkey;
 
     //let stored_price_type = &mut oracle_mappings.price_types[token];
-    let _price_type: PriceType = price_type
-        .try_into()
-        .map_err(|_| ScopeError::BadTokenType)?;
     oracle_mappings.price_types[token] = price_type;
 
     Ok(())
