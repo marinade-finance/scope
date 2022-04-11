@@ -224,7 +224,7 @@ describe('Scope tests', () => {
     fakeOraclesAccounts2 = await Promise.all(
       range.map(async (idx): Promise<any> => {
         // Just create random accounts to fill-up the prices
-        const oracleAddress = await mockAccountUtils.createPriceFeed({
+        const oracleAddress = await mockAccountUtils.createPriceFeedPyth({
           oracleProgram: fakeOraclesProgram,
           initPrice: new Decimal(idx),
           expo: -8,

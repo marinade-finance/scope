@@ -10,14 +10,14 @@ export enum PriceStatus {
   Auction = 3,
 }
 
-interface ICreatePriceFeed {
+interface ICreatePriceFeedPyth {
   oracleProgram: Program;
   initPrice: Decimal;
   confidence?: BN;
   expo?: number;
 }
 
-export const createPriceFeed = async ({ oracleProgram, initPrice, confidence, expo = -8 }: ICreatePriceFeed) => {
+export const createPriceFeedPyth = async ({ oracleProgram, initPrice, confidence, expo = -8 }: ICreatePriceFeedPyth) => {
   const conf = confidence || new BN(0);
   const collateralTokenFeed = new web3.Account();
 
@@ -102,7 +102,7 @@ export const createPriceFeedSwitchboardV2 = async ({
   console.log('Initialized collateralTokenFeed Switchboard V2');
   return collateralTokenFeed.publicKey;
 };
-export const setFeedPrice = async (oracleProgram: Program, newPrice: Decimal, priceFeed: web3.PublicKey) => {
+export const setFeedPricePyth = async (oracleProgram: Program, newPrice: Decimal, priceFeed: web3.PublicKey) => {
   const info = await oracleProgram.provider.connection.getAccountInfo(priceFeed);
   //@ts-expect-error
   const data = parsePriceData(info.data);
@@ -137,26 +137,26 @@ export const setFeedPriceSwitchboardV2 = async (
     accounts: { price: priceFeed, clock: SYSVAR_CLOCK_PUBKEY },
   });
 };
-export const setFeedTrading = async (oracleProgram: Program, newStatus: PriceStatus, priceFeed: web3.PublicKey) => {
-  await oracleProgram.rpc.setTrading(newStatus, {
+export const setFeedTradingPyth = async (oracleProgram: Program, newStatus: PriceStatus, priceFeed: web3.PublicKey) => {
+  await oracleProgram.rpc.setTradingPyth(newStatus, {
     accounts: { price: priceFeed },
   });
 };
-export const setConfidence = async (oracleProgram: Program, newConfidence: number, priceFeed: web3.PublicKey) => {
+export const setConfidencePyth = async (oracleProgram: Program, newConfidence: number, priceFeed: web3.PublicKey) => {
   const info = await oracleProgram.provider.connection.getAccountInfo(priceFeed);
   //@ts-expect-error
   const data = parsePriceData(info.data);
   const scaledConf = new BN(newConfidence * 10 ** -data.exponent);
 
-  await oracleProgram.rpc.setConfidence(scaledConf, {
+  await oracleProgram.rpc.setConfidencePyth(scaledConf, {
     accounts: { price: priceFeed },
   });
 };
-export const setTwap = async (oracleProgram: Program, newTwap: number, priceFeed: web3.PublicKey) => {
+export const setTwapPyth = async (oracleProgram: Program, newTwap: number, priceFeed: web3.PublicKey) => {
   const info = await oracleProgram.provider.connection.getAccountInfo(priceFeed);
   //@ts-expect-error
   const data = parsePriceData(info.data);
-  await oracleProgram.rpc.setTwap(new BN(newTwap * 10 ** -data.exponent), {
+  await oracleProgram.rpc.setTwapPyth(new BN(newTwap * 10 ** -data.exponent), {
     accounts: { price: priceFeed },
   });
 };

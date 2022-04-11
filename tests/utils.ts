@@ -31,7 +31,7 @@ export async function createFakeAccounts(fakeOraclesProgram: Program<any>, initi
       console.log(`Adding ${asset.ticker.toString()}`);
 
       if (asset.priceType == PriceType.Pyth || asset.priceType == PriceType.YiToken) {
-        return await mockAccountUtils.createPriceFeed({
+        return await mockAccountUtils.createPriceFeedPyth({
           oracleProgram: fakeOraclesProgram,
           initPrice: asset.price,
           expo: -asset.decimals,

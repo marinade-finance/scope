@@ -204,7 +204,7 @@ describe('Scope crank bot tests', () => {
       tokenList.map(async (asset, idx): Promise<any> => {
         console.log(`set price for ${asset.ticker}`);
         if (asset.priceType == PriceType.Pyth || asset.priceType == PriceType.YiToken) {
-          await mockAccountUtils.setFeedPrice(fakeOraclesProgram, asset.price, fakeAccounts[idx]);
+          await mockAccountUtils.setFeedPricePyth(fakeOraclesProgram, asset.price, fakeAccounts[idx]);
         } else if (asset.priceType == PriceType.SwitchboardV1) {
           await mockAccountUtils.setFeedPriceSwitchboardV1(
             fakeOraclesProgram,
