@@ -113,7 +113,7 @@ pub mod mock_oracles {
         Ok(())
     }
 
-    pub fn set_price(ctx: Context<SetPrice>, price: i64) -> ProgramResult {
+    pub fn set_price_pyth(ctx: Context<SetPrice>, price: i64) -> ProgramResult {
         let oracle = &ctx.accounts.price;
 
         let mut price_oracle = Price::load(oracle).unwrap();
@@ -168,7 +168,7 @@ pub mod mock_oracles {
         Ok(())
     }
 
-    pub fn set_trading(ctx: Context<SetPrice>, status: u8) -> ProgramResult {
+    pub fn set_trading_pyth(ctx: Context<SetPrice>, status: u8) -> ProgramResult {
         let oracle = &ctx.accounts.price;
         let mut price_oracle = Price::load(oracle).unwrap();
         match status {
@@ -183,14 +183,14 @@ pub mod mock_oracles {
         }
         Ok(())
     }
-    pub fn set_twap(ctx: Context<SetPrice>, value: u64) -> ProgramResult {
+    pub fn set_twap_pyth(ctx: Context<SetPrice>, value: u64) -> ProgramResult {
         let oracle = &ctx.accounts.price;
         let mut price_oracle = Price::load(oracle).unwrap();
         price_oracle.twap.val = value.try_into().unwrap();
 
         Ok(())
     }
-    pub fn set_confidence(ctx: Context<SetPrice>, value: u64) -> ProgramResult {
+    pub fn set_confidence_pyth(ctx: Context<SetPrice>, value: u64) -> ProgramResult {
         let oracle = &ctx.accounts.price;
         let mut price_oracle = Price::load(oracle).unwrap();
         price_oracle.agg.conf = value;

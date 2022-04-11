@@ -107,7 +107,7 @@ export const setFeedPrice = async (oracleProgram: Program, newPrice: Decimal, pr
   //@ts-expect-error
   const data = parsePriceData(info.data);
   const newPriceBn = new BN(newPrice.mul(new Decimal(10).pow(new Decimal(-data.exponent))).toNumber());
-  await oracleProgram.rpc.setPrice(newPriceBn, {
+  await oracleProgram.rpc.setPricePyth(newPriceBn, {
     accounts: { price: priceFeed, clock: SYSVAR_CLOCK_PUBKEY },
   });
 };
