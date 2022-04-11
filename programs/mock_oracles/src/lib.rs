@@ -15,7 +15,7 @@ const PROGRAM_ID: Pubkey = Pubkey::new_from_array(include!(concat!(env!("OUT_DIR
 declare_id!(PROGRAM_ID);
 
 #[program]
-pub mod pyth {
+pub mod mock_oracles {
 
     use std::convert::TryInto;
     use std::ops::Div;

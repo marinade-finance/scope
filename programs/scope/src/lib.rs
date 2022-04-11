@@ -86,7 +86,7 @@ pub struct OraclePrices {
     pub prices: [DatedPrice; MAX_ENTRIES],
 }
 
-// Accounts holding source of prices (all pyth for now)
+// Accounts holding source of prices (Pyth, Switchboard V1, YiToken and Switchboard V2 price_types)
 #[account(zero_copy)]
 pub struct OracleMappings {
     pub price_info_accounts: [Pubkey; MAX_ENTRIES],

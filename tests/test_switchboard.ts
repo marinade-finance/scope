@@ -165,7 +165,7 @@ describe('Switchboard Scope tests', () => {
 
   const program = new Program(global.ScopeIdl, global.getScopeProgramId(), provider);
 
-  const fakePythProgram = new Program(global.FakePythIdl, global.getFakePythProgramId(), provider);
+  const fakeOraclesProgram = new Program(global.FakeOraclesIdl, global.getFakeOraclesProgramId(), provider);
   let fakeAccounts: Array<PublicKey>;
 
   let programDataAddress: PublicKey;
@@ -173,7 +173,7 @@ describe('Switchboard Scope tests', () => {
   let oracleAccount: PublicKey;
   let oracleMappingAccount: PublicKey;
 
-  before('Initialize Scope and pyth prices', async () => {
+  before('Initialize Scope and mock_oracles prices', async () => {
     programDataAddress = await global.getProgramDataAddress(program.programId);
     confAccount = (
       await PublicKey.findProgramAddress(
@@ -208,14 +208,14 @@ describe('Switchboard Scope tests', () => {
       ],
     });
 
-    console.log('Initialize Tokens pyth prices and oracle mappings');
+    console.log('Initialize Tokens mock_oracles prices and oracle mappings');
 
-    fakeAccounts = await createFakeAccounts(fakePythProgram, initialTokens);
+    fakeAccounts = await createFakeAccounts(fakeOraclesProgram, initialTokens);
   });
 
   it('test_set_oracle_mappings', async () => {
     await Promise.all(
-      fakeAccounts.map(async (fakePythAccount, idx): Promise<any> => {
+      fakeAccounts.map(async (fakeOracleAccount, idx): Promise<any> => {
         console.log(`Set mapping of ${initialTokens[idx].ticker}`);
 
         await program.rpc.updateMapping(new BN(idx), initialTokens[idx].priceType, {
@@ -224,7 +224,7 @@ describe('Switchboard Scope tests', () => {
             program: program.programId,
             programData: programDataAddress,
             oracleMappings: oracleMappingAccount,
-            priceInfo: fakePythAccount,
+            priceInfo: fakeOracleAccount,
           },
           signers: [admin],
         });
@@ -279,7 +279,7 @@ describe('Switchboard Scope tests', () => {
   it('test_set_update_stsolusd_v2_price', async () => {
     let mantissa = new BN('123456789012345678');
     let scale = new BN('15');
-    await setFeedPriceSwitchboardV2(fakePythProgram, mantissa, scale, fakeAccounts[Tokens.STSOLUSD]);
+    await setFeedPriceSwitchboardV2(fakeOraclesProgram, mantissa, scale, fakeAccounts[Tokens.STSOLUSD]);
     initialTokens[Tokens.STSOLUSD].mantissa = mantissa;
     initialTokens[Tokens.STSOLUSD].expo = scale.toNumber();
     await program.rpc.refreshOnePrice(new BN(Tokens.STSOLUSD), {
@@ -299,7 +299,7 @@ describe('Switchboard Scope tests', () => {
   it('test_set_update_saber_msol_sol_v1_price', async () => {
     let mantissa = new BN('44859120123');
     let scale = new BN('8');
-    await setFeedPriceSwitchboardV1(fakePythProgram, mantissa, scale, fakeAccounts[Tokens.SABERMSOLSOL]);
+    await setFeedPriceSwitchboardV1(fakeOraclesProgram, mantissa, scale, fakeAccounts[Tokens.SABERMSOLSOL]);
     initialTokens[Tokens.SABERMSOLSOL].mantissa = mantissa;
     initialTokens[Tokens.SABERMSOLSOL].expo = scale.toNumber();
     await program.rpc.refreshOnePrice(new BN(Tokens.SABERMSOLSOL), {
@@ -319,7 +319,7 @@ describe('Switchboard Scope tests', () => {
   it('test_set_update_usdh_usd_v1_price', async () => {
     let mantissa = new BN('88675558012');
     let scale = new BN('8');
-    await setFeedPriceSwitchboardV1(fakePythProgram, mantissa, scale, fakeAccounts[Tokens.USDHUSD]);
+    await setFeedPriceSwitchboardV1(fakeOraclesProgram, mantissa, scale, fakeAccounts[Tokens.USDHUSD]);
     initialTokens[Tokens.USDHUSD].mantissa = mantissa;
     initialTokens[Tokens.USDHUSD].expo = scale.toNumber();
     await program.rpc.refreshOnePrice(new BN(Tokens.USDHUSD), {

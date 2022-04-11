@@ -1,5 +1,5 @@
 import { Program } from '@project-serum/anchor';
-import * as pythUtils from './mock_account_utils';
+import * as mockAccountUtils from './mock_account_utils';
 
 export enum Tokens {
   SOL = 0,
@@ -25,26 +25,26 @@ export enum PriceType {
   SwitchboardV2 = 3,
 }
 
-export async function createFakeAccounts(fakePythProgram: Program<any>, initialTokens: any[]) {
+export async function createFakeAccounts(fakeOraclesProgram: Program<any>, initialTokens: any[]) {
   return await Promise.all(
     initialTokens.map(async (asset): Promise<any> => {
       console.log(`Adding ${asset.ticker.toString()}`);
 
       if (asset.priceType == PriceType.Pyth || asset.priceType == PriceType.YiToken) {
-        return await pythUtils.createPriceFeed({
-          oracleProgram: fakePythProgram,
+        return await mockAccountUtils.createPriceFeed({
+          oracleProgram: fakeOraclesProgram,
           initPrice: asset.price,
           expo: -asset.decimals,
         });
       } else if (asset.priceType == PriceType.SwitchboardV1) {
-        return await pythUtils.createPriceFeedSwitchboardV1({
-          oracleProgram: fakePythProgram,
+        return await mockAccountUtils.createPriceFeedSwitchboardV1({
+          oracleProgram: fakeOraclesProgram,
           mantissa: asset.mantissa,
           scale: asset.expo,
         });
       } else if (asset.priceType == PriceType.SwitchboardV2) {
-        return await pythUtils.createPriceFeedSwitchboardV2({
-          oracleProgram: fakePythProgram,
+        return await mockAccountUtils.createPriceFeedSwitchboardV2({
+          oracleProgram: fakeOraclesProgram,
           mantissa: asset.mantissa,
           scale: asset.expo,
         });

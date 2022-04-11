@@ -19,7 +19,7 @@ import * as global from './global';
 import * as bot from './bot_utils';
 import { TOKEN_PROGRAM_ID } from '@project-serum/serum/lib/token-instructions';
 import { createFakeAccounts, PriceType } from './utils';
-import * as pythUtils from './mock_account_utils';
+import * as mockAccountUtils from './mock_account_utils';
 
 require('dotenv').config();
 
@@ -191,7 +191,7 @@ describe('Scope crank bot tests', () => {
 
   const program = new Program(global.ScopeIdl, global.getScopeProgramId(), provider);
 
-  const fakePythProgram = new Program(global.FakePythIdl, global.getFakePythProgramId(), provider);
+  const fakeOraclesProgram = new Program(global.FakeOraclesIdl, global.getFakeOraclesProgramId(), provider);
   let fakeAccounts: Array<PublicKey>;
 
   let programDataAddress: PublicKey;
@@ -204,17 +204,17 @@ describe('Scope crank bot tests', () => {
       tokenList.map(async (asset, idx): Promise<any> => {
         console.log(`set price for ${asset.ticker}`);
         if (asset.priceType == PriceType.Pyth || asset.priceType == PriceType.YiToken) {
-          await pythUtils.setFeedPrice(fakePythProgram, asset.price, fakeAccounts[idx]);
+          await mockAccountUtils.setFeedPrice(fakeOraclesProgram, asset.price, fakeAccounts[idx]);
         } else if (asset.priceType == PriceType.SwitchboardV1) {
-          await pythUtils.setFeedPriceSwitchboardV1(
-            fakePythProgram,
+          await mockAccountUtils.setFeedPriceSwitchboardV1(
+            fakeOraclesProgram,
             asset.mantissa,
             new BN(asset.expo),
             fakeAccounts[idx]
           );
         } else if (asset.priceType == PriceType.SwitchboardV2) {
-          await pythUtils.setFeedPriceSwitchboardV2(
-            fakePythProgram,
+          await mockAccountUtils.setFeedPriceSwitchboardV2(
+            fakeOraclesProgram,
             asset.mantissa,
             new BN(asset.expo),
             fakeAccounts[idx]
@@ -239,7 +239,7 @@ describe('Scope crank bot tests', () => {
     killBot();
   });
 
-  before('Initialize Scope and pyth prices', async () => {
+  before('Initialize Scope and mock_oracles prices', async () => {
     programDataAddress = await global.getProgramDataAddress(program.programId);
     confAccount = (
       await PublicKey.findProgramAddress(
@@ -274,12 +274,12 @@ describe('Scope crank bot tests', () => {
       ],
     });
 
-    console.log('Initialize Tokens pyth prices and oracle mappings');
+    console.log('Initialize Tokens mock_oracles prices and oracle mappings');
 
-    fakeAccounts = await createFakeAccounts(fakePythProgram, tokenList);
+    fakeAccounts = await createFakeAccounts(fakeOraclesProgram, tokenList);
 
     await Promise.all(
-      fakeAccounts.map(async (fakePythAccount, idx): Promise<any> => {
+      fakeAccounts.map(async (fakeOracleAccount, idx): Promise<any> => {
         console.log(`Set mapping of ${tokenList[idx].ticker}`);
         await program.rpc.updateMapping(new BN(getRevisedIndex(idx)), tokenList[idx].priceType, {
           accounts: {
@@ -287,7 +287,7 @@ describe('Scope crank bot tests', () => {
             program: program.programId,
             programData: programDataAddress,
             oracleMappings: oracleMappingAccount,
-            priceInfo: fakePythAccount,
+            priceInfo: fakeOracleAccount,
           },
           signers: [admin],
         });

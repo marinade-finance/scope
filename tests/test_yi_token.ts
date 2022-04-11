@@ -159,15 +159,15 @@ describe('Yi Scope tests', () => {
 
   const program = new Program(global.ScopeIdl, global.getScopeProgramId(), provider);
 
-  const fakePythProgram = new Program(global.FakePythIdl, global.getFakePythProgramId(), provider);
-  let fakePythAccounts: Array<PublicKey>;
+  const fakeOraclesProgram = new Program(global.FakeOraclesIdl, global.getFakeOraclesProgramId(), provider);
+  let fakeOraclesAccounts: Array<PublicKey>;
 
   let programDataAddress: PublicKey;
   let confAccount: PublicKey;
   let oracleAccount: PublicKey;
   let oracleMappingAccount: PublicKey;
 
-  before('Initialize Scope and pyth prices', async () => {
+  before('Initialize Scope and mock_oracles prices', async () => {
     programDataAddress = await global.getProgramDataAddress(program.programId);
     confAccount = (
       await PublicKey.findProgramAddress(
@@ -202,14 +202,14 @@ describe('Yi Scope tests', () => {
       ],
     });
 
-    console.log('Initialize Tokens pyth prices and oracle mappings');
+    console.log('Initialize Tokens mock_oracles prices and oracle mappings');
 
-    fakePythAccounts = await createFakeAccounts(fakePythProgram, initialTokens);
+    fakeOraclesAccounts = await createFakeAccounts(fakeOraclesProgram, initialTokens);
   });
 
   it('test_set_oracle_mappings', async () => {
     await Promise.all(
-      fakePythAccounts.map(async (fakePythAccount, idx): Promise<any> => {
+      fakeOraclesAccounts.map(async (fakeOracleAccount, idx): Promise<any> => {
         console.log(`Set mapping of ${initialTokens[idx].ticker}`);
 
         await program.rpc.updateMapping(new BN(idx), initialTokens[idx].priceType, {
@@ -218,7 +218,7 @@ describe('Yi Scope tests', () => {
             program: program.programId,
             programData: programDataAddress,
             oracleMappings: oracleMappingAccount,
-            priceInfo: fakePythAccount,
+            priceInfo: fakeOracleAccount,
           },
           signers: [admin],
         });

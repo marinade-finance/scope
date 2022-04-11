@@ -10,7 +10,7 @@ import {
 } from '@solana/web3.js';
 import { BN, Program, Provider, setProvider } from '@project-serum/anchor';
 import NodeWallet from '@project-serum/anchor/dist/cjs/nodewallet';
-import * as pythUtils from './mock_account_utils';
+import * as mockAccountUtils from './mock_account_utils';
 import { Decimal } from 'decimal.js';
 import * as chai from 'chai';
 import { expect } from 'chai';
@@ -172,16 +172,16 @@ describe('Scope tests', () => {
 
   const program = new Program(global.ScopeIdl, global.getScopeProgramId(), provider);
 
-  const fakePythProgram = new Program(global.FakePythIdl, global.getFakePythProgramId(), provider);
-  let fakePythAccounts: Array<PublicKey>;
-  let fakePythAccounts2: Array<PublicKey>; // Used to overflow oracle capacity
+  const fakeOraclesProgram = new Program(global.FakeOraclesIdl, global.getFakeOraclesProgramId(), provider);
+  let fakeOraclesAccounts: Array<PublicKey>;
+  let fakeOraclesAccounts2: Array<PublicKey>; // Used to overflow oracle capacity
 
   let programDataAddress: PublicKey;
   let confAccount: PublicKey;
   let oracleAccount: PublicKey;
   let oracleMappingAccount: PublicKey;
 
-  before('Initialize Scope and pyth prices', async () => {
+  before('Initialize Scope and mock_oracles prices', async () => {
     programDataAddress = await global.getProgramDataAddress(program.programId);
     confAccount = (
       await PublicKey.findProgramAddress(
@@ -216,16 +216,16 @@ describe('Scope tests', () => {
       ],
     });
 
-    console.log('Initialize Tokens pyth prices and oracle mappings');
+    console.log('Initialize Tokens mock_oracles prices and oracle mappings');
 
-    fakePythAccounts = await createFakeAccounts(fakePythProgram, initialTokens);
+    fakeOraclesAccounts = await createFakeAccounts(fakeOraclesProgram, initialTokens);
 
     const range = Array.from(Array(MAX_NB_TOKENS_IN_ONE_UPDATE).keys());
-    fakePythAccounts2 = await Promise.all(
+    fakeOraclesAccounts2 = await Promise.all(
       range.map(async (idx): Promise<any> => {
         // Just create random accounts to fill-up the prices
-        const oracleAddress = await pythUtils.createPriceFeed({
-          oracleProgram: fakePythProgram,
+        const oracleAddress = await mockAccountUtils.createPriceFeed({
+          oracleProgram: fakeOraclesProgram,
           initPrice: new Decimal(idx),
           expo: -8,
         });
@@ -237,7 +237,7 @@ describe('Scope tests', () => {
 
   it('test_set_oracle_mappings', async () => {
     await Promise.all(
-      fakePythAccounts.map(async (fakePythAccount, idx): Promise<any> => {
+      fakeOraclesAccounts.map(async (fakeOracleAccount, idx): Promise<any> => {
         console.log(`Set mapping of ${initialTokens[idx].ticker}`);
 
         await program.rpc.updateMapping(new BN(idx), initialTokens[idx].priceType, {
@@ -246,7 +246,7 @@ describe('Scope tests', () => {
             program: program.programId,
             programData: programDataAddress,
             oracleMappings: oracleMappingAccount,
-            priceInfo: fakePythAccount,
+            priceInfo: fakeOracleAccount,
           },
           signers: [admin],
         });
@@ -259,7 +259,7 @@ describe('Scope tests', () => {
       accounts: {
         oraclePrices: oracleAccount,
         oracleMappings: oracleMappingAccount,
-        priceInfo: fakePythAccounts[Tokens.SRM],
+        priceInfo: fakeOraclesAccounts[Tokens.SRM],
         clock: SYSVAR_CLOCK_PUBKEY,
       },
       signers: [],
@@ -280,10 +280,10 @@ describe('Scope tests', () => {
           clock: SYSVAR_CLOCK_PUBKEY,
         },
         remainingAccounts: [
-          { pubkey: fakePythAccounts[Tokens.ETH], isWritable: false, isSigner: false },
-          { pubkey: fakePythAccounts[Tokens.RAY], isWritable: false, isSigner: false },
-          { pubkey: fakePythAccounts[Tokens.STSOLUSD], isWritable: false, isSigner: false },
-          { pubkey: fakePythAccounts[Tokens.SABERMSOLSOL], isWritable: false, isSigner: false },
+          { pubkey: fakeOraclesAccounts[Tokens.ETH], isWritable: false, isSigner: false },
+          { pubkey: fakeOraclesAccounts[Tokens.RAY], isWritable: false, isSigner: false },
+          { pubkey: fakeOraclesAccounts[Tokens.STSOLUSD], isWritable: false, isSigner: false },
+          { pubkey: fakeOraclesAccounts[Tokens.SABERMSOLSOL], isWritable: false, isSigner: false },
         ],
         signers: [],
       }
@@ -301,14 +301,14 @@ describe('Scope tests', () => {
   it('test_set_full_oracle_mappings', async () => {
     // In this test set the tokens from the end of the mapping for limit testing
     await Promise.all(
-      fakePythAccounts2.map(async (fakePythAccount, idx): Promise<any> => {
+      fakeOraclesAccounts2.map(async (fakeOracleAccount, idx): Promise<any> => {
         await program.rpc.updateMapping(new BN(global.MAX_NB_TOKENS - idx - 1), PriceType.Pyth, {
           accounts: {
             admin: admin.publicKey,
             program: program.programId,
             programData: programDataAddress,
             oracleMappings: oracleMappingAccount,
-            priceInfo: fakePythAccount,
+            priceInfo: fakeOracleAccount,
           },
           signers: [admin],
         });
@@ -317,12 +317,12 @@ describe('Scope tests', () => {
   });
 
   it('test_update_max_list', async () => {
-    // Use the 30 first token from the second pyth accounts list
+    // Use the 30 first token from the second fake oracle accounts list
     let tokens: number[] = [];
     let accounts: any[] = [];
     for (let i = 0; i < MAX_NB_TOKENS_IN_ONE_UPDATE; i++) {
       tokens.push(global.MAX_NB_TOKENS - i - 1);
-      accounts.push({ pubkey: fakePythAccounts2[i], isWritable: false, isSigner: false });
+      accounts.push({ pubkey: fakeOraclesAccounts2[i], isWritable: false, isSigner: false });
     }
     await program.rpc.refreshPriceList(Uint16Array.from(tokens), {
       accounts: {

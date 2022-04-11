@@ -18,13 +18,13 @@ export function getScopeProgramId(_cluster?: string) {
   return pubkeyFromFile(`./keys/${cluster}/scope.json`);
 }
 
-export function getFakePythProgramId(_cluster?: string) {
+export function getFakeOraclesProgramId(_cluster?: string) {
   let cluster = getCluster(_cluster);
-  return pubkeyFromFile(`./keys/${cluster}/pyth.json`);
+  return pubkeyFromFile(`./keys/${cluster}/mock_oracles.json`);
 }
 
 export const ScopeIdl = JSON.parse(fs.readFileSync('./target/idl/scope.json', 'utf8'));
-export const FakePythIdl = JSON.parse(fs.readFileSync('./target/idl/pyth.json', 'utf8'));
+export const FakeOraclesIdl = JSON.parse(fs.readFileSync('./target/idl/mock_oracles.json', 'utf8'));
 
 export const MAX_NB_TOKENS = 512;
 
