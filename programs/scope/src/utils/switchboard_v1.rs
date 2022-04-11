@@ -6,8 +6,6 @@ use switchboard_program::{
 };
 
 pub fn get_price(switchboard_feed_info: &AccountInfo) -> Result<DatedPrice> {
-    //const STALE_AFTER_SLOTS_ELAPSED: u64 = 240;
-
     let account_buf = switchboard_feed_info.try_borrow_data()?;
     // first byte type discriminator
     if account_buf[0] != SwitchboardAccountType::TYPE_AGGREGATOR as u8 {
@@ -19,7 +17,6 @@ pub fn get_price(switchboard_feed_info: &AccountInfo) -> Result<DatedPrice> {
     let round_result: RoundResult = get_aggregator_result(&aggregator)?;
 
     let price_float = round_result.result.unwrap_or(0.0);
-    //let (mantissa, exponent, sign) = price_float.integer_decode();
 
     let exp = 8u32;
     let price_quotient: f64 = 10u64.pow(exp) as f64;
