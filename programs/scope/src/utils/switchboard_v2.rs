@@ -14,8 +14,8 @@ pub fn get_price(switchboard_feed_info: &AccountInfo) -> Result<DatedPrice> {
         msg!("Switchboard oracle price is negative which is not allowed");
         return Err(ScopeError::PriceNotValid.into());
     }
-    let price: u64 = price_switchboard_desc.mantissa as u64;
-    let exp: u64 = price_switchboard_desc.scale as u64;
+    let price: u64 = price_switchboard_desc.mantissa.try_into().map_err(|_| ScopeError::MathOverflow)?;
+    let exp: u64 = price_switchboard_desc.scale.try_into().map_err(|_| ScopeError::MathOverflow)?;
 
     Ok(DatedPrice {
         price: Price { value: price, exp },
