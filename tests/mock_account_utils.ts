@@ -17,7 +17,12 @@ interface ICreatePriceFeedPyth {
   expo?: number;
 }
 
-export const createPriceFeedPyth = async ({ oracleProgram, initPrice, confidence, expo = -8 }: ICreatePriceFeedPyth) => {
+export const createPriceFeedPyth = async ({
+  oracleProgram,
+  initPrice,
+  confidence,
+  expo = -8,
+}: ICreatePriceFeedPyth) => {
   const conf = confidence || new BN(0);
   const collateralTokenFeed = new web3.Account();
 
