@@ -83,7 +83,6 @@ pub mod mock_oracles {
             ..AggregatorState::default()
         };
         serialize_into_slice(&aggregator_state, &mut account_data[1..]).unwrap();
-        //let _ = switchboard_program::get_aggregator(&ctx.accounts.price).unwrap();
         let key = &ctx.accounts.price.key.to_string();
         msg!("Switchboard V1 price {} initialized at slot {}", key, slot);
 
@@ -96,8 +95,8 @@ pub mod mock_oracles {
         scale: u32,
     ) -> ProgramResult {
         let mut account_data = ctx.accounts.price.data.borrow_mut();
-        let discriminator: [u8; 8] = [217, 230, 65, 101, 201, 162, 27, 125];
-        let _ = account_data[..8].copy_from_slice(&discriminator);
+        const DISCRIMINATOR: [u8; 8] = [217, 230, 65, 101, 201, 162, 27, 125];
+        account_data[..8].copy_from_slice(&DISCRIMINATOR);
         let aggregator_account_data: &mut AggregatorAccountData =
             bytemuck::from_bytes_mut(&mut account_data[8..]);
         aggregator_account_data.latest_confirmed_round.result =
