@@ -2260,6 +2260,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "mock_oracles"
+version = "0.1.0"
+dependencies = [
+ "anchor-lang 0.18.2",
+ "anyhow",
+ "arrayref",
+ "borsh",
+ "bytemuck",
+ "quick-protobuf",
+ "serde",
+ "serde_json",
+ "switchboard-program",
+ "switchboard-v2",
+]
+
+[[package]]
 name = "multipart"
 version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2683,22 +2699,6 @@ dependencies = [
  "syn 1.0.90",
  "version_check",
  "yansi",
-]
-
-[[package]]
-name = "pyth"
-version = "0.1.0"
-dependencies = [
- "anchor-lang 0.18.2",
- "anyhow",
- "arrayref",
- "borsh",
- "bytemuck",
- "quick-protobuf",
- "serde",
- "serde_json",
- "switchboard-program",
- "switchboard-v2",
 ]
 
 [[package]]

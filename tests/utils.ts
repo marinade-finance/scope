@@ -21,8 +21,8 @@ export enum Tokens {
 export enum PriceType {
   Pyth = 0,
   SwitchboardV1 = 1,
-  YiToken = 2,
-  SwitchboardV2 = 3,
+  SwitchboardV2 = 2,
+  YiToken = 3,
 }
 
 export async function createFakeAccounts(fakeOraclesProgram: Program<any>, initialTokens: any[]) {

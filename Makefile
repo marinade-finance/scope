@@ -56,7 +56,7 @@ SCOPE_PROGRAM_KEYPAIR := keys/$(CLUSTER)/scope.json
 FAKE_ORACLES_PROGRAM_KEYPAIR := keys/$(CLUSTER)/mock_oracles.json
 
 SCOPE_PROGRAM_SO := target/deploy/scope.so
-FAKE_ORACLES_PROGRAM_SO := target/deploy/pyth.so
+FAKE_ORACLES_PROGRAM_SO := target/deploy/mock_oracles.so
 SCOPE_CLI := target/debug/scope
 
 SCOPE_PROGRAM_ID != solana-keygen pubkey $(SCOPE_PROGRAM_KEYPAIR)

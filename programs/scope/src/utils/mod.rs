@@ -24,15 +24,15 @@ pub fn check_context<T>(ctx: &Context<T>) -> ProgramResult {
 pub enum PriceType {
     Pyth,
     SwitchboardV1,
-    YiToken,
     SwitchboardV2,
+    YiToken,
 }
 
 pub fn get_price(price_type: PriceType, price_acc: &AccountInfo) -> crate::Result<DatedPrice> {
     match price_type {
         PriceType::Pyth => pyth::get_price(price_acc),
         PriceType::SwitchboardV1 => switchboard_v1::get_price(price_acc),
-        PriceType::YiToken => Err(ScopeError::BadTokenType.into()),
         PriceType::SwitchboardV2 => switchboard_v2::get_price(price_acc),
+        PriceType::YiToken => Err(ScopeError::BadTokenType.into()),
     }
 }

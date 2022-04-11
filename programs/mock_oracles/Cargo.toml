@@ -1,5 +1,5 @@
 [package]
-name = "pyth"
+name = "mock_oracles"
 version = "0.1.0"
 description = "Pyth oracle interface implementation in anchor"
 edition = "2018"
@@ -8,7 +8,7 @@ authors = ["Synthetify Labs <contact@synthetify.io>"]
 
 [lib]
 crate-type = ["cdylib", "lib"]
-name = "pyth"
+name = "mock_oracles"
 doctest = false
 
 [features]
