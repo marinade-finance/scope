@@ -1,9 +1,9 @@
-//! Toolings to retrieve mock_oracles prices and validate them
+//! Toolings to retrieve pyth prices and validate them
 //!
-//! Validation partially follows [mock_oracles best practices](https://docs.pyth.network/consumers/best-practices)
+//! Validation partially follows [pyth best practices](https://docs.pyth.network/consumers/best-practices)
 //!
-//! 1. Some checks in [`validate_pyth_price`] are performed on the mock_oracles price account upon registration in
-//!    the oracle mapping. However some information present only in the associated mock_oracles product account are
+//! 1. Some checks in [`validate_pyth_price`] are performed on the pyth price account upon registration in
+//!    the oracle mapping. However some information present only in the associated pyth product account are
 //!    expected to be checked by the admin to ensure the product has the expected quality prior the mapping
 //!    update.
 //! 2. Upon usage the current price state is checked in [`validate_valid_price`]
