@@ -44,7 +44,9 @@ pub fn refresh_yi_token(ctx: Context<RefreshYiToken>, token: usize) -> ProgramRe
 
     match price_type {
         PriceType::YiToken => (),
-        PriceType::Pyth | PriceType::SwitchboardV1 | PriceType::SwitchboardV2 => return Err(ScopeError::BadTokenType.into()),
+        PriceType::Pyth | PriceType::SwitchboardV1 | PriceType::SwitchboardV2 => {
+            return Err(ScopeError::BadTokenType.into())
+        }
     };
     let price = get_price(
         &ctx.accounts.yi_underlying_tokens,

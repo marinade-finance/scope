@@ -101,6 +101,8 @@ pub mod mock_oracles {
             bytemuck::from_bytes_mut(&mut account_data[8..]);
         aggregator_account_data.latest_confirmed_round.result =
             SwitchboardDecimal::new(mantissa, scale);
+        aggregator_account_data.latest_confirmed_round.std_deviation =
+            SwitchboardDecimal::new(0, 1);
         let slot = ctx.accounts.clock.slot;
         aggregator_account_data
             .latest_confirmed_round
@@ -157,6 +159,9 @@ pub mod mock_oracles {
             bytemuck::from_bytes_mut(&mut account_data[8..]);
         aggregator_account_data.latest_confirmed_round.result =
             SwitchboardDecimal::new(mantissa, scale);
+        aggregator_account_data.latest_confirmed_round.std_deviation =
+            SwitchboardDecimal::new(0, 1);
+        aggregator_account_data.latest_confirmed_round.num_success = 3;
         let slot = ctx.accounts.clock.slot;
         aggregator_account_data
             .latest_confirmed_round

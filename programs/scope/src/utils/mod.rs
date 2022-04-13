@@ -1,6 +1,8 @@
 pub mod pyth;
 pub mod switchboard_v1;
 pub mod switchboard_v2;
+#[cfg(test)]
+pub mod tests_utils;
 pub mod yitoken;
 
 use crate::{DatedPrice, ScopeError};
