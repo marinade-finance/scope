@@ -100,5 +100,13 @@
       "oracle_mapping": "9LNYQZLJG5DAyeACCTzBFG6H3sDhehP5xtYLdhrZtQkA",
       "price_type": "SwitchboardV2"
     }
+  ],
+  [
+    14,
+    {
+      "token_pair": "UST/USDswitchboardV1",
+      "oracle_mapping": "8o8gN6VnW45R8pPfQzUJUwJi2adFmsWwfGcFNmicWt61",
+      "price_type": "SwitchboardV1"
+    }
   ]
 ]
