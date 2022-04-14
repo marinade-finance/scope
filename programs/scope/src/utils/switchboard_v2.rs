@@ -8,6 +8,7 @@ use switchboard_v2::AggregatorAccountData;
 
 const MIN_NUM_SUCCESS: u32 = 3u32;
 const MIN_CONFIDENCE_PERCENTAGE: u128 = 2u128;
+const CONFIDENCE_FACTOR: u128 = 100/MIN_CONFIDENCE_PERCENTAGE;
 
 pub fn get_price(switchboard_feed_info: &AccountInfo) -> Result<DatedPrice> {
     let feed = AggregatorAccountData::new(switchboard_feed_info)
@@ -96,7 +97,7 @@ fn validate_confidence(price: u64, exp: u32, stdev_mantissa: i128, stdev_scale: 
         .checked_mul(stdev_scaling_factor)
         .ok_or(ScopeError::MathOverflow)?;
 
-    if stdev_scaled * (100 / MIN_CONFIDENCE_PERCENTAGE) > price_scaled {
+    if stdev_scaled * (CONFIDENCE_FACTOR) > price_scaled {
         Err(ScopeError::PriceNotValid.into())
     }
     else {
