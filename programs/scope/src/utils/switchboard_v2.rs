@@ -78,30 +78,27 @@ fn validate_confidence(price: u64, exp: u32, stdev_mantissa: i128, stdev_scale: 
     let stdev_mantissa: u64 = stdev_mantissa
         .try_into()
         .map_err(|_| ScopeError::MathOverflow)?;
-    let min_scale = min(exp, stdev_scale);
-    let price_scaling_factor = 10u64
-        .checked_pow(exp.checked_sub(min_scale).ok_or(ScopeError::MathOverflow)?)
-        .ok_or(ScopeError::MathOverflow)?;
-    let stdev_scaling_factor = 10u64
-        .checked_pow(
-            stdev_scale
-                .checked_sub(min_scale)
-                .ok_or(ScopeError::MathOverflow)?,
-        )
-        .ok_or(ScopeError::MathOverflow)?;
-    let price_scaled = price
-        .checked_mul(price_scaling_factor)
-        .ok_or(ScopeError::MathOverflow)?;
-    let stdev_scaled = stdev_mantissa
-        .checked_mul(stdev_scaling_factor)
-        .ok_or(ScopeError::MathOverflow)?;
-
-    if stdev_scaled * (CONFIDENCE_FACTOR) > price_scaled {
-        Err(ScopeError::PriceNotValid.into())
+    if exp >= stdev_scale {
+        let scaling_factor = 10u64.checked_pow(exp-stdev_scale).ok_or(ScopeError::MathOverflow)?;
+        let stdev_x_confidence_factor_downscaled = stdev_mantissa.checked_mul(CONFIDENCE_FACTOR)
+            .ok_or(ScopeError::MathOverflow)?
+            .checked_div(scaling_factor)
+            .ok_or(ScopeError::MathOverflow)?;
+        if stdev_x_confidence_factor_downscaled >= price {
+            return Err(ScopeError::PriceNotValid.into());
+        };
     }
     else {
-        Ok(())
-    }
+        let scaling_factor = 10u64.checked_pow(stdev_scale-exp).ok_or(ScopeError::MathOverflow)?;
+        let stdev_x_confidence_factor_upscaled = stdev_mantissa.checked_mul(CONFIDENCE_FACTOR)
+            .ok_or(ScopeError::MathOverflow)?
+            .checked_mul(scaling_factor)
+            .ok_or(ScopeError::MathOverflow)?;
+        if stdev_x_confidence_factor_upscaled >= price {
+            return Err(ScopeError::PriceNotValid.into());
+        };
+    };
+    Ok(())
 }
 
 
@@ -136,11 +133,6 @@ mod tests {
 
     //V2 Standard Deviation Confidence Tests
     #[test]
-    fn test_valid_switchboard_v2_price_stdev_2percent() {
-        assert!(switchboard_v2::validate_valid_price(100, 3, 1, 1, 1, 20, 2).is_ok());
-    }
-
-    #[test]
     fn test_valid_switchboard_v2_price_stdev_1_point_99_percent() {
         assert!(switchboard_v2::validate_valid_price(100, 3, 1, 1, 1, 1999, 0).is_ok());
     }
@@ -151,9 +143,42 @@ mod tests {
     }
 
     #[test]
+    fn test_valid_switchboard_v2_price_stdev_zero_1() {
+        assert!(switchboard_v2::validate_valid_price(474003240021234567, 15, 1, 1, 1, 0, 1).is_ok());
+    }
+
+    #[test]
+    fn test_valid_switchboard_v2_price_stdev_1p9percent_std_exp_larger_than_price_exp() {
+        assert!(switchboard_v2::validate_valid_price(100000, 0, 1, 1, 1, 19, 2).is_ok());
+    }
+
+    #[test]
+    fn test_valid_switchboard_v2_price_stdev_1p9_std_exp_larger_than_price_exp_8_decimals_diff() {
+        assert!(switchboard_v2::validate_valid_price(100_000_000_000, 0, 1, 1, 1, 19, 8).is_ok());
+    }
+
+    #[test]
+    fn test_valid_switchboard_v2_price_stdev_1p9_std_exp_larger_than_price_exp_9_decimals_diff() {
+        assert!(switchboard_v2::validate_valid_price(100_000_000_000, 0, 1, 1, 1, 1, 9).is_ok());
+    }
+
+
+    #[test]
+    fn test_invalid_switchboard_v2_price_stdev_2percent_std_exp_larger_than_price_exp() {
+        assert!(switchboard_v2::validate_valid_price(100000, 0, 1, 1, 1, 2, 3).is_err());
+    }
+
+    #[test]
+    fn test_invalid_switchboard_v2_price_stdev_2percent_std_exp_larger_than_price_exp_2() {
+        assert!(switchboard_v2::validate_valid_price(100, 3, 1, 1, 1, 20, 2).is_err());
+    }
+
+    #[test]
     fn test_invalid_switchboard_v2_price_stdev_above_2percent() {
         assert!(switchboard_v2::validate_valid_price(100, 3, 1, 1, 1, 2001, 0).is_err());
     }
+
+
 
     #[test]
     fn test_invalid_switchboard_v2_price_stdev_above_2percent_2() {
