@@ -95,22 +95,13 @@ fn validate_confidence(price: u64, exp: u32, stdev_mantissa: i128, stdev_scale: 
     let stdev_scaled = stdev_mantissa
         .checked_mul(stdev_scaling_factor)
         .ok_or(ScopeError::MathOverflow)?;
-    if price_scaled > stdev_scaled {
-        let abs_diff_x100 = price_scaled
-            .checked_sub(stdev_scaled)
-            .ok_or(ScopeError::MathOverflow)?
-            .checked_mul(100)
-            .ok_or(ScopeError::MathOverflow)?;
-        let diff_round_percentage = abs_diff_x100
-            .checked_div(price_scaled)
-            .ok_or(ScopeError::MathOverflow)?;
-        if diff_round_percentage < (100 - MIN_CONFIDENCE_PERCENTAGE) {
-            return Err(ScopeError::PriceNotValid.into());
-        };
-    } else {
-        return Err(ScopeError::PriceNotValid.into());
-    };
-    Ok(())
+
+    if stdev_scaled * (100 / MIN_CONFIDENCE_PERCENTAGE) > price_scaled {
+        Err(ScopeError::PriceNotValid.into())
+    }
+    else {
+        Ok(())
+    }
 }
 
 fn validate_confidence_percentage(price_scaled: u128, abs_diff_x100: u128) -> Result<()> {
@@ -127,4 +118,66 @@ fn validate_confidence_percentage(price_scaled: u128, abs_diff_x100: u128) -> Re
         return Err(ScopeError::PriceNotValid.into());
     };
     Ok(())
+}
+
+
+#[cfg(test)]
+mod tests {
+    use crate::utils::switchboard_v2;
+
+    #[test]
+    fn test_valid_switchboard_v2_price() {
+        assert!(switchboard_v2::validate_valid_price(1, 1, 1, 1, 1, 0, 1).is_ok());
+    }
+
+    #[test]
+    fn test_valid_switchboard_v2_price_min_1_success_2() {
+        assert!(switchboard_v2::validate_valid_price(1, 1, 1, 1, 2, 0, 1).is_ok());
+    }
+
+    #[test]
+    fn test_valid_switchboard_v2_price_default_min_success() {
+        assert!(switchboard_v2::validate_valid_price(1, 1, 1, 4, 3, 0, 1).is_ok());
+    }
+
+    #[test]
+    fn test_invalid_switchboard_v2_price_1() {
+        assert!(switchboard_v2::validate_valid_price(1, 1, 1, 2, 1, 0, 1).is_err());
+    }
+
+    #[test]
+    fn test_invalid_switchboard_v2_price_2() {
+        assert!(switchboard_v2::validate_valid_price(1, 1, 1, 4, 2, 0, 1).is_err());
+    }
+
+    //V2 Standard Deviation Confidence Tests
+    #[test]
+    fn test_valid_switchboard_v2_price_stdev_2percent() {
+        assert!(switchboard_v2::validate_valid_price(100, 3, 1, 1, 1, 20, 2).is_ok());
+    }
+
+    #[test]
+    fn test_valid_switchboard_v2_price_stdev_1_point_99_percent() {
+        assert!(switchboard_v2::validate_valid_price(100, 3, 1, 1, 1, 1999, 0).is_ok());
+    }
+
+    #[test]
+    fn test_valid_switchboard_v2_price_stdev_zero() {
+        assert!(switchboard_v2::validate_valid_price(100, 3, 1, 1, 1, 0, 30).is_ok());
+    }
+
+    #[test]
+    fn test_invalid_switchboard_v2_price_stdev_above_2percent() {
+        assert!(switchboard_v2::validate_valid_price(100, 3, 1, 1, 1, 2001, 0).is_err());
+    }
+
+    #[test]
+    fn test_invalid_switchboard_v2_price_stdev_above_2percent_2() {
+        assert!(switchboard_v2::validate_valid_price(100, 3, 1, 1, 1, 201, 1).is_err());
+    }
+
+    #[test]
+    fn test_invalid_switchboard_v2_price_stdev_higher_than_price() {
+        assert!(switchboard_v2::validate_valid_price(100, 3, 1, 1, 1, 100001, 0).is_err());
+    }
 }
