@@ -7,8 +7,8 @@ use std::cmp::min;
 use switchboard_v2::AggregatorAccountData;
 
 const MIN_NUM_SUCCESS: u32 = 3u32;
-const MIN_CONFIDENCE_PERCENTAGE: u128 = 2u128;
-const CONFIDENCE_FACTOR: u128 = 100/MIN_CONFIDENCE_PERCENTAGE;
+const MIN_CONFIDENCE_PERCENTAGE: u64 = 2u64;
+const CONFIDENCE_FACTOR: u64 = 100/MIN_CONFIDENCE_PERCENTAGE;
 
 pub fn get_price(switchboard_feed_info: &AccountInfo) -> Result<DatedPrice> {
     let feed = AggregatorAccountData::new(switchboard_feed_info)
@@ -75,22 +75,21 @@ fn validate_min_success(min_oracle_results: u32, num_success: u32) -> Result<()>
 }
 
 fn validate_confidence(price: u64, exp: u32, stdev_mantissa: i128, stdev_scale: u32) -> Result<()> {
-    let stdev_mantissa: u128 = stdev_mantissa
+    let stdev_mantissa: u64 = stdev_mantissa
         .try_into()
         .map_err(|_| ScopeError::MathOverflow)?;
     let min_scale = min(exp, stdev_scale);
-    let price_scaling_factor = 10u128
+    let price_scaling_factor = 10u64
         .checked_pow(exp.checked_sub(min_scale).ok_or(ScopeError::MathOverflow)?)
         .ok_or(ScopeError::MathOverflow)?;
-    let stdev_scaling_factor = 10u128
+    let stdev_scaling_factor = 10u64
         .checked_pow(
             stdev_scale
                 .checked_sub(min_scale)
                 .ok_or(ScopeError::MathOverflow)?,
         )
         .ok_or(ScopeError::MathOverflow)?;
-    let price_u128: u128 = price.into();
-    let price_scaled = price_u128
+    let price_scaled = price
         .checked_mul(price_scaling_factor)
         .ok_or(ScopeError::MathOverflow)?;
     let stdev_scaled = stdev_mantissa
@@ -148,7 +147,7 @@ mod tests {
 
     #[test]
     fn test_valid_switchboard_v2_price_stdev_zero() {
-        assert!(switchboard_v2::validate_valid_price(100, 3, 1, 1, 1, 0, 30).is_ok());
+        assert!(switchboard_v2::validate_valid_price(100, 3, 1, 1, 1, 0, 15).is_ok());
     }
 
     #[test]
