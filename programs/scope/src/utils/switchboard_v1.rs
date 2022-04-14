@@ -3,7 +3,7 @@ use anchor_lang::prelude::*;
 use std::cmp::min;
 
 use switchboard_program::{
-    get_aggregator, get_aggregator_result, mod_AggregatorState, AggregatorState, RoundResult,
+    get_aggregator, get_aggregator_result, AggregatorState, RoundResult,
     SwitchboardAccountType,
 };
 

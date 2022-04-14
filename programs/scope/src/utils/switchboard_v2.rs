@@ -1,9 +1,9 @@
 use crate::{DatedPrice, Price, Result, ScopeError};
 use anchor_lang::prelude::*;
-use std::cell::Ref;
+
 use std::cmp::min;
 
-use switchboard_v2::decimal::SwitchboardDecimal;
+
 use switchboard_v2::AggregatorAccountData;
 
 const MIN_NUM_SUCCESS: u32 = 3u32;
@@ -102,22 +102,6 @@ fn validate_confidence(price: u64, exp: u32, stdev_mantissa: i128, stdev_scale: 
     else {
         Ok(())
     }
-}
-
-fn validate_confidence_percentage(price_scaled: u128, abs_diff_x100: u128) -> Result<()> {
-    let diff_round_percentage = abs_diff_x100
-        .checked_div(price_scaled)
-        .ok_or(ScopeError::MathOverflow)?;
-    if diff_round_percentage < (100 - MIN_CONFIDENCE_PERCENTAGE) {
-        msg!(
-            "\n\n\n\n\n\nprice scaled {}, abs_diff_x100 {}, diff round percentage {}",
-            price_scaled,
-            abs_diff_x100,
-            diff_round_percentage
-        );
-        return Err(ScopeError::PriceNotValid.into());
-    };
-    Ok(())
 }
 
 
