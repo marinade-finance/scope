@@ -31,7 +31,9 @@ pub mod scope {
     }
 
     pub fn refresh_yi_token(ctx: Context<RefreshYiToken>, token: u64) -> ProgramResult {
-        let token: usize = token.try_into().map_err(|_| ScopeError::OutOfRangeIntegralConversion)?;
+        let token: usize = token
+            .try_into()
+            .map_err(|_| ScopeError::OutOfRangeIntegralConversion)?;
         handler_yitoken_prices::refresh_yi_token(ctx, token)
     }
 
@@ -40,7 +42,11 @@ pub mod scope {
         handler_refresh_prices::refresh_price_list(ctx, &tokens)
     }
 
-    pub fn update_mapping(ctx: Context<UpdateOracleMapping>, token: u64, price_type: u8) -> ProgramResult {
+    pub fn update_mapping(
+        ctx: Context<UpdateOracleMapping>,
+        token: u64,
+        price_type: u8,
+    ) -> ProgramResult {
         let token: usize = token
             .try_into()
             .map_err(|_| ScopeError::OutOfRangeIntegralConversion)?;
@@ -80,7 +86,7 @@ pub struct OraclePrices {
     pub prices: [DatedPrice; MAX_ENTRIES],
 }
 
-// Accounts holding source of prices (all pyth for now)
+// Accounts holding source of prices (Pyth, Switchboard V1, YiToken and Switchboard V2 price_types)
 #[account(zero_copy)]
 pub struct OracleMappings {
     pub price_info_accounts: [Pubkey; MAX_ENTRIES],
@@ -126,6 +132,9 @@ pub enum ScopeError {
 
     #[msg("The token type received is invalid")]
     BadTokenType,
+
+    #[msg("There was an error with the Switchboard V2 retrieval")]
+    SwitchboardV2Error,
 }
 
 impl<T> From<TryFromPrimitiveError<T>> for ScopeError
