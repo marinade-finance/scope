@@ -30,14 +30,6 @@ pub mod scope {
         handler_refresh_prices::refresh_one_price(ctx, token)
     }
 
-    pub fn refresh_yi_token(ctx: Context<RefreshYiToken>, token: u64) -> ProgramResult {
-        let token: usize = token
-            .try_into()
-            .map_err(|_| ScopeError::OutOfRangeIntegralConversion)?;
-        handler_yitoken_prices::refresh_yi_token(ctx, token)
-    }
-
-    /// This handler will reject the refresh of yi tokens
     pub fn refresh_price_list(ctx: Context<RefreshList>, tokens: Vec<u16>) -> ProgramResult {
         handler_refresh_prices::refresh_price_list(ctx, &tokens)
     }
@@ -86,7 +78,7 @@ pub struct OraclePrices {
     pub prices: [DatedPrice; MAX_ENTRIES],
 }
 
-// Accounts holding source of prices (Pyth, Switchboard V1, YiToken and Switchboard V2 price_types)
+// Accounts holding source of prices
 #[account(zero_copy)]
 pub struct OracleMappings {
     pub price_info_accounts: [Pubkey; MAX_ENTRIES],
