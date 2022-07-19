@@ -1,16 +1,22 @@
-use anchor_lang::prelude::*;
 mod ctokens;
+mod externals;
 pub mod pc;
 mod spl_stake;
 
-use pc::{Price, PriceStatus};
+use std::convert::TryInto;
+use std::ops::Div;
+
+use quick_protobuf::deserialize_from_slice;
+use quick_protobuf::serialize_into_slice;
+
+use anchor_lang::prelude::*;
+
 use switchboard_program::{
     mod_AggregatorState, AggregatorState, RoundResult, SwitchboardAccountType,
 };
 
-use borsh::{BorshDeserialize, BorshSerialize};
-use quick_protobuf::deserialize_from_slice;
-use quick_protobuf::serialize_into_slice;
+use crate::externals::switchboard_v2::{AggregatorAccountData, SwitchboardDecimal};
+use crate::pc::{Price, PriceStatus};
 
 const PROGRAM_ID: Pubkey = Pubkey::new_from_array(include!(concat!(env!("OUT_DIR"), "/pubkey.rs")));
 
@@ -18,20 +24,14 @@ declare_id!(PROGRAM_ID);
 
 #[program]
 pub mod mock_oracles {
-
-    use std::convert::TryInto;
-    use std::ops::Div;
-
-    use switchboard_v2::AggregatorAccountData;
-
     use super::*;
-    use switchboard_v2::decimal::SwitchboardDecimal;
+
     pub fn initialize_pyth(
         ctx: Context<Initialize>,
         price: i64,
         expo: i32,
         conf: u64,
-    ) -> ProgramResult {
+    ) -> Result<()> {
         let oracle = &ctx.accounts.oracle_account;
 
         let mut price_oracle = Price::load(oracle).unwrap();
@@ -46,9 +46,12 @@ pub mod mock_oracles {
         price_oracle.num_qt = 3;
         price_oracle.magic = 0xa1b2c3d4;
         price_oracle.ver = 2;
+        price_oracle.atype = 3;
 
         let slot = ctx.accounts.clock.slot;
         price_oracle.valid_slot = slot;
+        price_oracle.last_slot = slot;
+        price_oracle.agg.pub_slot = slot;
 
         msg!(
             "Price {} initialized to {}, expo {}, conf {} at slot {}",
@@ -66,7 +69,7 @@ pub mod mock_oracles {
         ctx: Context<Initialize>,
         mantissa: i128,
         scale: u32,
-    ) -> ProgramResult {
+    ) -> Result<()> {
         let mut account_data = ctx.accounts.oracle_account.data.borrow_mut();
         account_data[0] = SwitchboardAccountType::TYPE_AGGREGATOR as u8;
 
@@ -100,7 +103,7 @@ pub mod mock_oracles {
         ctx: Context<Initialize>,
         mantissa: i128,
         scale: u32,
-    ) -> ProgramResult {
+    ) -> Result<()> {
         let mut account_data = ctx.accounts.oracle_account.data.borrow_mut();
         const DISCRIMINATOR: [u8; 8] = [217, 230, 65, 101, 201, 162, 27, 125];
         account_data[..8].copy_from_slice(&DISCRIMINATOR);
@@ -125,7 +128,7 @@ pub mod mock_oracles {
         ctx: Context<Initialize>,
         mint_total_supply: u64,
         total_liquidity: u64,
-    ) -> ProgramResult {
+    ) -> Result<()> {
         ctokens::initialize(
             &ctx.accounts.oracle_account,
             mint_total_supply,
@@ -144,7 +147,7 @@ pub mod mock_oracles {
         ctx: Context<Initialize>,
         mint_total_supply: u64,
         total_liquidity: u64,
-    ) -> ProgramResult {
+    ) -> Result<()> {
         spl_stake::initialize(
             &ctx.accounts.oracle_account,
             mint_total_supply,
@@ -159,7 +162,7 @@ pub mod mock_oracles {
         Ok(())
     }
 
-    pub fn set_price_pyth(ctx: Context<SetPrice>, price: i64) -> ProgramResult {
+    pub fn set_price_pyth(ctx: Context<SetPrice>, price: i64) -> Result<()> {
         let oracle = &ctx.accounts.oracle_account;
 
         let mut price_oracle = Price::load(oracle).unwrap();
@@ -167,6 +170,8 @@ pub mod mock_oracles {
 
         let slot = ctx.accounts.clock.slot;
         price_oracle.valid_slot = slot;
+        price_oracle.last_slot = slot;
+        price_oracle.agg.pub_slot = slot;
         msg!(
             "Pyth price {} updated to {} at slot {}",
             oracle.key,
@@ -180,7 +185,7 @@ pub mod mock_oracles {
         ctx: Context<SetPrice>,
         mantissa: i128,
         scale: u32,
-    ) -> ProgramResult {
+    ) -> Result<()> {
         let mut account_data = ctx.accounts.oracle_account.data.borrow_mut();
         let mut aggregator_state: AggregatorState =
             deserialize_from_slice(&account_data[1..]).unwrap();
@@ -203,7 +208,7 @@ pub mod mock_oracles {
         ctx: Context<SetPrice>,
         mantissa: i128,
         scale: u32,
-    ) -> ProgramResult {
+    ) -> Result<()> {
         let mut account_data = ctx.accounts.oracle_account.data.borrow_mut();
         let aggregator_account_data: &mut AggregatorAccountData =
             bytemuck::from_bytes_mut(&mut account_data[8..]);
@@ -226,7 +231,7 @@ pub mod mock_oracles {
         ctx: Context<SetPrice>,
         mint_total_supply: u64,
         total_liquidity: u64,
-    ) -> ProgramResult {
+    ) -> Result<()> {
         ctokens::update(
             &ctx.accounts.oracle_account,
             mint_total_supply,
@@ -245,7 +250,7 @@ pub mod mock_oracles {
         ctx: Context<SetPrice>,
         mint_total_supply: u64,
         total_liquidity: u64,
-    ) -> ProgramResult {
+    ) -> Result<()> {
         spl_stake::update(
             &ctx.accounts.oracle_account,
             mint_total_supply,
@@ -260,7 +265,7 @@ pub mod mock_oracles {
         Ok(())
     }
 
-    pub fn set_trading_pyth(ctx: Context<SetPrice>, status: u8) -> ProgramResult {
+    pub fn set_trading_pyth(ctx: Context<SetPrice>, status: u8) -> Result<()> {
         let oracle = &ctx.accounts.oracle_account;
         let mut price_oracle = Price::load(oracle).unwrap();
         match status {
@@ -270,19 +275,19 @@ pub mod mock_oracles {
             3 => price_oracle.agg.status = PriceStatus::Auction,
             _ => {
                 msg!("Unknown status: {}", status);
-                return Err(ProgramError::Custom(1559));
+                return Err(ProgramError::Custom(1559).into());
             }
         }
         Ok(())
     }
-    pub fn set_twap_pyth(ctx: Context<SetPrice>, value: u64) -> ProgramResult {
+    pub fn set_twap_pyth(ctx: Context<SetPrice>, value: u64) -> Result<()> {
         let oracle = &ctx.accounts.oracle_account;
         let mut price_oracle = Price::load(oracle).unwrap();
         price_oracle.twap.val = value.try_into().unwrap();
 
         Ok(())
     }
-    pub fn set_confidence_pyth(ctx: Context<SetPrice>, value: u64) -> ProgramResult {
+    pub fn set_confidence_pyth(ctx: Context<SetPrice>, value: u64) -> Result<()> {
         let oracle = &ctx.accounts.oracle_account;
         let mut price_oracle = Price::load(oracle).unwrap();
         price_oracle.agg.conf = value;

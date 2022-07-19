@@ -1,14 +1,14 @@
-use anchor_lang::prelude::{AccountInfo, Clock, ProgramResult, Pubkey, SolanaSysvar};
-use anchor_lang::solana_program::program_pack::Pack;
-use solend_program::state::{
+use crate::externals::solend::{
     LastUpdate, Reserve, ReserveCollateral, ReserveLiquidity, PROGRAM_VERSION,
 };
+use anchor_lang::prelude::{AccountInfo, Clock, Pubkey, Result, SolanaSysvar};
+use anchor_lang::solana_program::program_pack::Pack;
 
 pub fn initialize(
     ctoken_account: &AccountInfo,
     mint_total_supply: u64,
     total_liquidity: u64,
-) -> ProgramResult {
+) -> Result<()> {
     let reserve = Reserve {
         version: PROGRAM_VERSION,
         last_update: LastUpdate {
@@ -27,7 +27,7 @@ pub fn initialize(
         ..Default::default()
     };
     let mut data = ctoken_account.data.borrow_mut();
-    solend_program::state::Reserve::pack(reserve, &mut data)?;
+    Reserve::pack(reserve, &mut data)?;
     Ok(())
 }
 
@@ -35,7 +35,7 @@ pub fn update(
     ctoken_account: &AccountInfo,
     mint_total_supply: u64,
     total_liquidity: u64,
-) -> ProgramResult {
+) -> Result<()> {
     let mut data = ctoken_account.data.borrow_mut();
     let mut reserve = Reserve::unpack(&data)?;
 
@@ -43,6 +43,6 @@ pub fn update(
     reserve.liquidity.available_amount = total_liquidity;
     reserve.collateral.mint_total_supply = mint_total_supply;
 
-    solend_program::state::Reserve::pack(reserve, &mut data)?;
+    Reserve::pack(reserve, &mut data)?;
     Ok(())
 }
