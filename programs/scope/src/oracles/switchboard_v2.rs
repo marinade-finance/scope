@@ -1,3 +1,5 @@
+use std::convert::TryInto;
+
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::log::sol_log;
 
@@ -46,10 +48,16 @@ pub fn get_price(switchboard_feed_info: &AccountInfo) -> Result<DatedPrice> {
     };
 
     let last_updated_slot = feed.latest_confirmed_round.round_open_slot;
+    let unix_timestamp = feed
+        .latest_confirmed_round
+        .round_open_timestamp
+        .try_into()
+        .unwrap();
 
     Ok(DatedPrice {
         price,
         last_updated_slot,
+        unix_timestamp,
         ..Default::default()
     })
 }
@@ -153,7 +161,7 @@ mod switchboard {
 
     #[zero_copy]
     #[repr(packed)]
-    #[derive(Debug, PartialEq)]
+    #[derive(Debug)]
     pub struct AggregatorAccountData {
         pub name: [u8; 32],
         pub metadata: [u8; 128],

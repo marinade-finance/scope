@@ -1,14 +1,19 @@
-pub mod handlers;
+pub mod oracles;
 pub mod program_id;
 pub mod utils;
 
+mod handlers;
+
 // Reexports to deal with eventual conflicts
+pub use crate::utils::scope_chain;
 pub use anchor_lang;
-use decimal_wad::error::DecimalError;
 pub use num_enum;
+
+use decimal_wad::error::DecimalError;
 
 // Local use
 use std::convert::TryInto;
+use std::num::TryFromIntError;
 
 use anchor_lang::prelude::*;
 use num_enum::{TryFromPrimitive, TryFromPrimitiveError};
@@ -18,6 +23,9 @@ use program_id::PROGRAM_ID;
 
 declare_id!(PROGRAM_ID);
 
+// Note: Need to be directly integer value to not confuse the IDL generator
+pub const MAX_ENTRIES_U16: u16 = 512;
+// Note: Need to be directly integer value to not confuse the IDL generator
 pub const MAX_ENTRIES: usize = 512;
 
 #[program]
@@ -71,11 +79,28 @@ pub struct Price {
 }
 
 #[zero_copy]
-#[derive(Debug, Eq, PartialEq, Default)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct DatedPrice {
     pub price: Price,
     pub last_updated_slot: u64,
-    pub _reserved: [u64; 4],
+    pub unix_timestamp: u64,
+    pub _reserved: [u64; 2],
+    pub _reserved2: [u16; 3],
+    // Current index of the dated price.
+    pub index: u16,
+}
+
+impl Default for DatedPrice {
+    fn default() -> Self {
+        Self {
+            price: Default::default(),
+            last_updated_slot: Default::default(),
+            unix_timestamp: Default::default(),
+            _reserved: Default::default(),
+            _reserved2: Default::default(),
+            index: MAX_ENTRIES_U16,
+        }
+    }
 }
 
 // Account to store dated prices
@@ -134,6 +159,15 @@ pub enum ScopeError {
 
     #[msg("There was an error with the Switchboard V2 retrieval")]
     SwitchboardV2Error,
+
+    #[msg("Invalid account discriminator")]
+    InvalidAccountDiscriminator,
+
+    #[msg("Unable to deserialize account")]
+    UnableToDeserializeAccount,
+
+    #[msg("Error while computing price with ScopeChain")]
+    BadScopeChainOrPrices,
 }
 
 impl<T> From<TryFromPrimitiveError<T>> for ScopeError
@@ -142,6 +176,12 @@ where
 {
     fn from(_: TryFromPrimitiveError<T>) -> Self {
         ScopeError::ConversionFailure
+    }
+}
+
+impl From<TryFromIntError> for ScopeError {
+    fn from(_: TryFromIntError) -> Self {
+        ScopeError::OutOfRangeIntegralConversion
     }
 }
 

@@ -11,12 +11,14 @@
 use anchor_client::solana_client::rpc_client::RpcClient;
 use anchor_client::solana_sdk::clock;
 use anyhow::Result;
-use scope::utils::OracleType;
+use scope::oracles::OracleType;
 use scope::{anchor_lang::prelude::Pubkey, DatedPrice};
 
+pub mod ktokens;
 pub mod single_account_oracle;
 pub mod yi_token;
 
+pub use ktokens::KTokenOracle;
 pub use single_account_oracle::SingleAccountOracle;
 pub use yi_token::YiOracle;
 
@@ -71,5 +73,6 @@ pub fn entry_from_config(
         | OracleType::CToken
         | OracleType::SplStake => Box::new(SingleAccountOracle::new(token_conf, default_max_age)),
         OracleType::YiToken => Box::new(YiOracle::new(token_conf, default_max_age, rpc)?),
+        OracleType::KToken => Box::new(KTokenOracle::new(token_conf, default_max_age, rpc)?),
     })
 }
