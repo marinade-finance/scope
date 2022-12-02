@@ -46,6 +46,18 @@ pub fn refresh_one_price(ctx: Context<RefreshOne>, token: usize) -> Result<()> {
 
     // Only load when needed, allows prices computation to use scope chain
     let mut oracle = ctx.accounts.oracle_prices.load_mut()?;
+
+    msg!(
+        "tk {}, {:?}: {:?} to {:?} | prev_slot: {:?}, new_slot: {:?}, crt_slot: {:?}",
+        token,
+        price_type,
+        oracle.prices[token].price.value,
+        price.price.value,
+        oracle.prices[token].last_updated_slot,
+        price.last_updated_slot,
+        clock.slot,
+    );
+
     oracle.prices[token] = price;
 
     Ok(())
@@ -97,6 +109,18 @@ pub fn refresh_price_list(ctx: Context<RefreshList>, tokens: &[u16]) -> Result<(
                     .prices
                     .get_mut(token_idx)
                     .ok_or(ScopeError::BadTokenNb)?;
+
+                msg!(
+                    "tk {}, {:?}: {:?} to {:?} | prev_slot: {:?}, new_slot: {:?}, crt_slot: {:?}",
+                    token_idx,
+                    price_type,
+                    to_update.price.value,
+                    price.price.value,
+                    to_update.last_updated_slot,
+                    price.last_updated_slot,
+                    clock.slot,
+                );
+
                 *to_update = price;
                 to_update.index = token_nb;
             }
