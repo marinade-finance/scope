@@ -3,15 +3,13 @@
 
 use std::fmt::{Debug, Display};
 
-use anchor_client::solana_client::rpc_client::RpcClient;
+use anchor_client::solana_sdk::clock;
 use anyhow::Result;
-use scope::oracles::OracleType;
-use scope::{anchor_lang::prelude::Pubkey, DatedPrice};
-
-use crate::config::TokenConfig;
+use orbit_link::async_client::AsyncClient;
+use scope::{anchor_lang::prelude::Pubkey, oracles::OracleType, DatedPrice};
 
 use super::{OracleHelper, TokenEntry};
-use anchor_client::solana_sdk::clock;
+use crate::config::TokenConfig;
 
 pub struct SingleAccountOracle {
     pub label: String,
@@ -31,6 +29,7 @@ impl SingleAccountOracle {
     }
 }
 
+#[async_trait::async_trait]
 impl OracleHelper for SingleAccountOracle {
     fn get_type(&self) -> OracleType {
         self.oracle_type
@@ -44,7 +43,7 @@ impl OracleHelper for SingleAccountOracle {
         &self.oracle_account
     }
 
-    fn get_extra_accounts(&self, _rpc: Option<&RpcClient>) -> Result<Vec<Pubkey>> {
+    async fn get_extra_accounts(&self, _rpc: Option<&dyn AsyncClient>) -> Result<Vec<Pubkey>> {
         Ok(Vec::with_capacity(0))
     }
 
@@ -52,7 +51,11 @@ impl OracleHelper for SingleAccountOracle {
         self.max_age
     }
 
-    fn need_refresh(&self, _scope_price: &DatedPrice, _rpc: &RpcClient) -> Result<bool> {
+    async fn need_refresh(
+        &self,
+        _scope_price: &DatedPrice,
+        _rpc: &dyn AsyncClient,
+    ) -> Result<bool> {
         Ok(false)
     }
 }

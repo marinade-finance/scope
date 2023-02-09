@@ -8,22 +8,29 @@ description = "Cli to setup the Scope program and trigger autorefresh of the pri
 [[bin]]
 name = "scope"
 path = "src/main.rs"
+required-features = ["rpc-client"]
 
 [lib]
 name = "scope_client"
 path = "src/lib.rs"
 
+[features]
+default = ["rpc-client"]
+rpc-client = ["orbit-link/rpc-client"]
+banks-client = ["orbit-link/banks-client"]
+
 [dependencies]
-anchor-client = "0.25.0"
-anchor-spl = { version = "0.25.0", features = ["dex", "token"] }
+anchor-client = "0.26.0"
 scope = { path = "../../programs/scope", features = ["no-entrypoint"] }
 anyhow = "1.0.0"
 clap = { version = "3.2.11", features = ["derive", "env", "wrap_help"] }
-url = "2.2.2"
 serde = "1.0.136"
 serde_json = "1.0.79"
 tracing = "0.1.10"
 tracing-subscriber = { version = "0.3.9", features = ["std", "fmt", "json"] }
 tokio = "1.14.1"
-warp = "0.3.2"
+warp = "0.3.3"
 nohash-hasher = "0.2.0"
+orbit-link = { path = "../orbit-link" }
+async-trait = "0.1.51"
+futures = "0.3.18"

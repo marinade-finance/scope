@@ -1,32 +1,30 @@
-use anchor_client::solana_sdk::signature::read_keypair_file;
-use anchor_client::{solana_sdk::pubkey::Pubkey, Client, Cluster};
+use std::{
+    path::{Path, PathBuf},
+    time::{Duration, Instant},
+};
 
-use anchor_client::solana_sdk::clock;
-use anchor_client::solana_sdk::commitment_config::CommitmentConfig;
-use scope_client::utils::get_clock;
-use scope_client::{ScopeClient, ScopeConfig};
-use std::path::Path;
-use std::path::PathBuf;
-use std::rc::Rc;
-use std::thread::sleep;
-use std::time::{Duration, Instant};
-
+use anchor_client::{
+    solana_client::nonblocking::rpc_client::RpcClient,
+    solana_sdk::{
+        clock, commitment_config::CommitmentConfig, pubkey::Pubkey, signature::read_keypair_file,
+        signer::Signer,
+    },
+    Cluster,
+};
+use anyhow::Result;
 use clap::{Parser, Subcommand};
-
+use orbit_link::{async_client::AsyncClient, OrbitLink};
+use scope_client::{utils::get_clock, ScopeClient, ScopeConfig};
+use tokio::time::sleep;
 use tracing::{error, info, trace, warn};
 
-use anyhow::Result;
-
-mod cluster_parse;
 mod web;
-
-use cluster_parse::parse;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
     /// Connect to solana validator
-    #[clap(long, env, parse(try_from_str=parse), default_value = "localnet")]
+    #[clap(long, env, parse(try_from_str), default_value = "localnet")]
     cluster: Cluster,
 
     /// Account keypair to pay for the transactions
@@ -123,7 +121,8 @@ enum Actions {
     },
 }
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     let args: Args = Args::parse();
 
     info!("Starting with args {:#?}", args);
@@ -143,18 +142,20 @@ fn main() -> Result<()> {
         CommitmentConfig::confirmed()
     };
 
-    let client = Client::new_with_options(args.cluster, Rc::new(payer), commitment);
+    let rpc_client = RpcClient::new_with_commitment(args.cluster.url().to_string(), commitment);
+    // TODO: use lookup tables
+    let client = OrbitLink::new(rpc_client, payer, None, commitment);
 
     if let Actions::Init { mapping } = args.action {
-        init(&client, &args.program_id, &args.price_feed, &mapping)
+        init(client, &args.program_id, &args.price_feed, &mapping).await
     } else {
-        let mut scope = ScopeClient::new(client, args.program_id, &args.price_feed)?;
+        let mut scope = ScopeClient::new(client, args.program_id, &args.price_feed).await?;
 
         match args.action {
-            Actions::Download { mapping } => download(&mut scope, &mapping),
-            Actions::Upload { mapping } => upload(&mut scope, &mapping),
+            Actions::Download { mapping } => download(&mut scope, &mapping).await,
+            Actions::Upload { mapping } => upload(&mut scope, &mapping).await,
             Actions::Init { .. } => unreachable!(),
-            Actions::Show { mapping } => show(&mut scope, &mapping),
+            Actions::Show { mapping } => show(&mut scope, &mapping).await,
             Actions::Crank {
                 refresh_interval_slot,
                 mapping,
@@ -163,9 +164,11 @@ fn main() -> Result<()> {
                 num_retries_before_error,
                 old_price_is_error,
             } => {
-                if server {
-                    web::server::thread_start(server_port)?;
-                }
+                let _server_handle = if server {
+                    Some(web::server::thread_start(server_port).await)
+                } else {
+                    None
+                };
                 crank(
                     &mut scope,
                     (mapping).as_ref(),
@@ -173,69 +176,82 @@ fn main() -> Result<()> {
                     num_retries_before_error,
                     old_price_is_error,
                 )
+                .await
             }
-            Actions::GetPubkeys { mapping } => get_pubkeys(&mut scope, &mapping),
+            Actions::GetPubkeys { mapping } => get_pubkeys(&mut scope, &mapping).await,
         }
     }
 }
 
-fn init(
-    client: &Client,
+async fn init<T: AsyncClient, S: Signer>(
+    client: OrbitLink<T, S>,
     program_id: &Pubkey,
     price_feed: &str,
     mapping_op: &Option<impl AsRef<Path>>,
 ) -> Result<()> {
-    let mut scope = ScopeClient::new_init_program(client, program_id, price_feed)?;
+    let mut scope = ScopeClient::new_init_program(client, program_id, price_feed).await?;
 
     if let Some(mapping) = mapping_op {
         let token_list = ScopeConfig::read_from_file(&mapping)?;
-        scope.set_local_mapping(&token_list)?;
-        scope.upload_oracle_mapping()?;
+        scope.set_local_mapping(&token_list).await?;
+        scope.upload_oracle_mapping().await?;
     }
 
     Ok(())
 }
 
-fn upload(scope: &mut ScopeClient, mapping: &impl AsRef<Path>) -> Result<()> {
+async fn upload<T: AsyncClient, S: Signer>(
+    scope: &mut ScopeClient<T, S>,
+    mapping: &impl AsRef<Path>,
+) -> Result<()> {
     let token_list = ScopeConfig::read_from_file(&mapping)?;
-    scope.set_local_mapping(&token_list)?;
-    scope.upload_oracle_mapping()
+    scope.set_local_mapping(&token_list).await?;
+    scope.upload_oracle_mapping().await
 }
 
-fn download(scope: &mut ScopeClient, mapping: &impl AsRef<Path>) -> Result<()> {
-    scope.download_oracle_mapping(0)?;
+async fn download<T: AsyncClient, S: Signer>(
+    scope: &mut ScopeClient<T, S>,
+    mapping: &impl AsRef<Path>,
+) -> Result<()> {
+    scope.download_oracle_mapping(0).await?;
     let token_list = scope.get_local_mapping()?;
     token_list.save_to_file(mapping)
 }
 
-fn show(scope: &mut ScopeClient, mapping_op: &Option<impl AsRef<Path>>) -> Result<()> {
+async fn show<T: AsyncClient, S: Signer>(
+    scope: &mut ScopeClient<T, S>,
+    mapping_op: &Option<impl AsRef<Path>>,
+) -> Result<()> {
     if let Some(mapping) = mapping_op {
         let token_list = ScopeConfig::read_from_file(&mapping)?;
-        scope.set_local_mapping(&token_list)?;
+        scope.set_local_mapping(&token_list).await?;
     } else {
-        scope.download_oracle_mapping(0)?;
+        scope.download_oracle_mapping(0).await?;
     }
 
-    let current_slot = get_clock(&scope.get_rpc())?.slot;
+    let current_slot = get_clock(scope.get_rpc()).await?.slot;
 
     info!(current_slot);
 
-    scope.log_prices(current_slot)
+    scope.log_prices(current_slot).await
 }
 
-fn get_pubkeys(scope: &mut ScopeClient, mapping_op: &Option<impl AsRef<Path>>) -> Result<()> {
+async fn get_pubkeys<T: AsyncClient, S: Signer>(
+    scope: &mut ScopeClient<T, S>,
+    mapping_op: &Option<impl AsRef<Path>>,
+) -> Result<()> {
     if let Some(mapping) = mapping_op {
         let token_list = ScopeConfig::read_from_file(&mapping)?;
-        scope.set_local_mapping(&token_list)?;
+        scope.set_local_mapping(&token_list).await?;
     } else {
-        scope.download_oracle_mapping(0)?;
+        scope.download_oracle_mapping(0).await?;
     }
 
-    scope.print_pubkeys()
+    scope.print_pubkeys().await
 }
 
-fn crank(
-    scope: &mut ScopeClient,
+async fn crank<T: AsyncClient, S: Signer>(
+    scope: &mut ScopeClient<T, S>,
     mapping_op: Option<impl AsRef<Path>>,
     refresh_interval_slot: clock::Slot,
     init_num_retries_before_err: usize,
@@ -247,14 +263,14 @@ fn crank(
             "Default refresh interval set to {:?} slots",
             token_list.default_max_age
         );
-        scope.set_local_mapping(&token_list)?;
+        scope.set_local_mapping(&token_list).await?;
         // TODO add check if local is correctly equal to remote mapping
     } else {
         info!(
             "Default refresh interval set to {:?} slots",
             refresh_interval_slot
         );
-        scope.download_oracle_mapping(refresh_interval_slot)?;
+        scope.download_oracle_mapping(refresh_interval_slot).await?;
     }
     let mut num_retries_before_err: usize = init_num_retries_before_err;
     let error_log = format!(
@@ -263,20 +279,20 @@ fn crank(
     loop {
         let start = Instant::now();
 
-        if let Err(e) = scope.refresh_expired_prices() {
+        if let Err(e) = scope.refresh_old_prices().await {
             warn!("Error while refreshing prices {:?}", e);
         }
 
         let elapsed = start.elapsed();
         trace!("last refresh duration was {:?}", elapsed);
 
-        let current_slot = get_clock(&scope.get_rpc())?.slot;
+        let current_slot = get_clock(scope.get_rpc()).await?.slot;
 
         info!(current_slot);
 
-        let _ = scope.log_prices(current_slot);
+        let _ = scope.log_prices(current_slot).await;
 
-        let shortest_ttl = scope.get_prices_shortest_ttl()?;
+        let shortest_ttl = scope.get_prices_shortest_ttl().await?;
         trace!(shortest_ttl);
 
         if shortest_ttl > 0 {
@@ -284,24 +300,18 @@ fn crank(
             // Time to sleep if we consider slot age
             let sleep_ms_from_slots = shortest_ttl * clock::DEFAULT_MS_PER_SLOT;
             trace!(sleep_ms_from_slots);
-            sleep(Duration::from_millis(sleep_ms_from_slots));
+            sleep(Duration::from_millis(sleep_ms_from_slots)).await;
         } else {
             num_retries_before_err -= 1;
         }
 
         if num_retries_before_err == 0 {
             if old_price_is_error {
-                error!(%error_log, old_prices=?scope.get_expired_prices().unwrap_or_default());
+                error!(%error_log, old_prices=?scope.get_expired_prices().await.unwrap_or_default());
             } else {
-                warn!(%error_log, old_prices=?scope.get_expired_prices().unwrap_or_default());
+                warn!(%error_log, old_prices=?scope.get_expired_prices().await.unwrap_or_default());
             }
             num_retries_before_err = init_num_retries_before_err;
         }
-    }
-
-    #[allow(unreachable_code)]
-    {
-        // no exit condition in crank operating mode
-        unreachable!()
     }
 }

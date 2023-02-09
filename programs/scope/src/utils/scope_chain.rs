@@ -82,12 +82,12 @@
 
 use std::fmt::Debug;
 
-use crate::{DatedPrice, OraclePrices, Price, ScopeError, MAX_ENTRIES};
-
 use anchor_lang::Discriminator;
 use bytemuck;
 use decimal_wad::rate::U128;
 pub use strum::IntoEnumIterator;
+
+use crate::{DatedPrice, OraclePrices, Price, ScopeError, MAX_ENTRIES};
 
 /// Maximum length of a chain (4 so the size of one chain is the same as `u64`)
 pub const MAX_CHAIN_LENGTH: usize = 4;
@@ -168,8 +168,10 @@ pub struct ScopeChainAccount {
 }
 
 impl Discriminator for ScopeChainAccount {
+    const DISCRIMINATOR: [u8; 8] = [180, 51, 138, 247, 240, 173, 119, 79];
+
     fn discriminator() -> [u8; 8] {
-        [180, 51, 138, 247, 240, 173, 119, 79]
+        Self::DISCRIMINATOR
     }
 }
 
@@ -370,13 +372,11 @@ impl From<ScopeChainError> for ScopeError {
 
 #[cfg(test)]
 mod test {
-    use super::{PriceChain, ScopeChainAccount, ScopeChainError};
-
-    use anchor_lang::solana_program::clock;
+    use anchor_lang::{solana_program::clock, Discriminator};
     use strum::{EnumIter, IntoEnumIterator};
 
+    use super::{PriceChain, ScopeChainAccount, ScopeChainError};
     use crate::{DatedPrice, OraclePrices};
-    use anchor_lang::Discriminator;
 
     #[test]
     fn create_chain_from_idx_array() {
@@ -655,7 +655,7 @@ mod test {
     }
 
     fn dispatch_sig(namespace: &str, name: &str) -> [u8; 8] {
-        let preimage = format!("{}:{}", namespace, name);
+        let preimage = format!("{namespace}:{name}");
 
         let mut sighash = [0; 8];
         let mut hasher = <sha2::Sha256 as sha2::Digest>::new();

@@ -5,13 +5,12 @@ pub mod pyth_ema;
 pub mod spl_stake;
 pub mod switchboard_v1;
 pub mod switchboard_v2;
-pub mod yitoken;
-
-use crate::{DatedPrice, ScopeError};
 
 use anchor_lang::prelude::{err, AccountInfo, Clock, Context, Result};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use serde::{Deserialize, Serialize};
+
+use crate::{DatedPrice, ScopeError};
 
 pub fn check_context<T>(ctx: &Context<T>) -> Result<()> {
     //make sure there are no extra accounts
@@ -30,7 +29,7 @@ pub enum OracleType {
     Pyth = 0,
     SwitchboardV1 = 1,
     SwitchboardV2 = 2,
-    YiToken = 3,
+    // Deprecated YiToken = 3,
     /// Solend tokens
     CToken = 4,
     /// SPL Stake Pool token (like scnSol)
@@ -39,6 +38,21 @@ pub enum OracleType {
     KToken = 6,
     /// Pyth Exponentially-Weighted Moving Average
     PythEMA = 7,
+}
+
+impl OracleType {
+    /// Get the number of compute unit needed to refresh the price of a token
+    pub fn get_update_cu_budget(&self) -> u32 {
+        match self {
+            OracleType::Pyth => 15000,
+            OracleType::SwitchboardV1 => 15000,
+            OracleType::SwitchboardV2 => 30000,
+            OracleType::CToken => 130000,
+            OracleType::SplStake => 20000,
+            OracleType::KToken => 50000,
+            OracleType::PythEMA => 15000,
+        }
+    }
 }
 
 /// Get the price for a given oracle type
@@ -59,7 +73,6 @@ where
         OracleType::Pyth => pyth::get_price(base_account),
         OracleType::SwitchboardV1 => switchboard_v1::get_price(base_account),
         OracleType::SwitchboardV2 => switchboard_v2::get_price(base_account),
-        OracleType::YiToken => yitoken::get_price(base_account, extra_accounts, clock),
         OracleType::CToken => ctokens::get_price(base_account, clock),
         OracleType::SplStake => spl_stake::get_price(base_account, clock),
         OracleType::KToken => ktokens::get_price(base_account, extra_accounts),
@@ -79,7 +92,6 @@ pub fn validate_oracle_account(
         OracleType::Pyth => pyth::validate_pyth_price_info(price_account),
         OracleType::SwitchboardV1 => Ok(()), // TODO at least check account ownership?
         OracleType::SwitchboardV2 => Ok(()), // TODO at least check account ownership?
-        OracleType::YiToken => Ok(()),       // TODO how shall we validate yi token account?
         OracleType::CToken => Ok(()),        // TODO how shall we validate ctoken account?
         OracleType::SplStake => Ok(()),
         OracleType::KToken => Ok(()),

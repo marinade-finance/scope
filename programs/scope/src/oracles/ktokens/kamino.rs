@@ -1,20 +1,20 @@
-use std::cell::Ref;
-use std::convert::TryInto;
+use std::{cell::Ref, convert::TryInto};
 
 use anchor_lang::prelude::*;
-
-use decimal_wad::common::{TryDiv, TryMul};
-use decimal_wad::decimal::{Decimal, U192};
-use decimal_wad::rate::U128;
-
+use decimal_wad::{
+    common::{TryDiv, TryMul},
+    decimal::{Decimal, U192},
+    rate::U128,
+};
+use num::traits::Pow;
 use whirlpool::math::sqrt_price_from_tick_index;
 pub use whirlpool::state::{Position, PositionRewardInfo, Whirlpool, WhirlpoolRewardInfo};
 
-use crate::oracles::ktokens::kamino::price_utils::calc_price_from_sqrt_price;
-use crate::scope_chain::ScopeChainAccount;
-use crate::utils::zero_copy_deserialize;
-use crate::{DatedPrice, OraclePrices, ScopeError, ScopeResult};
-use num::traits::Pow;
+use crate::{
+    oracles::ktokens::kamino::price_utils::calc_price_from_sqrt_price,
+    scope_chain::ScopeChainAccount, utils::zero_copy_deserialize, DatedPrice, OraclePrices,
+    ScopeError, ScopeResult,
+};
 
 const TARGET_EXPONENT: u64 = 12;
 use super::USD_DECIMALS_PRECISION;
@@ -400,9 +400,8 @@ pub struct WithdrawalCaps {
 }
 
 mod price_utils {
-    use crate::Price;
-
     use super::*;
+    use crate::Price;
 
     // Helper
     fn sub(a: u64, b: u64) -> ScopeResult<u32> {
@@ -511,14 +510,13 @@ mod price_utils {
 mod tests {
     use num::traits::Pow;
 
+    use super::price_utils::sqrt_price_from_scope_prices;
     use crate::{
         oracles::ktokens::kamino::price_utils::{
             a_to_b, calc_price_from_sqrt_price, calc_sqrt_price_from_scope_price,
         },
         Price,
     };
-
-    use super::price_utils::sqrt_price_from_scope_prices;
 
     pub fn calc_sqrt_price_from_float_price(price: f64, decimals_a: u64, decimals_b: u64) -> u128 {
         let px = (price * 10.0_f64.pow(decimals_b as i32 - decimals_a as i32)).sqrt();
@@ -553,7 +551,7 @@ mod tests {
         };
 
         let a_to_b_price = a_to_b(token_a_price, token_b_price);
-        println!("a_to_b_price: {:?}", a_to_b_price);
+        println!("a_to_b_price: {a_to_b_price:?}");
 
         // assert_eq!(sqrt_price_from_scope_price(scope_price), sqrt_price);
     }
@@ -567,10 +565,10 @@ mod tests {
         let px3 = calc_sqrt_price_from_float_price(price, 6, 9);
         let px4 = calc_sqrt_price_from_float_price(price, 9, 6);
 
-        println!("px1: {}", px1);
-        println!("px2: {}", px2);
-        println!("px3: {}", px3);
-        println!("px4: {}", px4);
+        println!("px1: {px1}");
+        println!("px2: {px2}");
+        println!("px3: {px3}");
+        println!("px4: {px4}");
     }
 
     #[test]
@@ -586,8 +584,8 @@ mod tests {
         let x = calc_sqrt_price_from_scope_price(px, 6, 6).unwrap();
         let y = calc_sqrt_price_from_float_price(f(px), 6, 6);
 
-        println!("x: {}", x);
-        println!("y: {}", y);
+        println!("x: {x}");
+        println!("y: {y}");
 
         for (decimals_a, decimals_b) in
             [(1, 10), (6, 6), (9, 6), (6, 9), (9, 9), (10, 1)].into_iter()
@@ -599,7 +597,7 @@ mod tests {
             let px_y = calc_price_from_sqrt_price(y, decimals_a, decimals_b);
 
             let diff = (px_x - px_y).abs();
-            println!("x: {}, y: {} diff: {}", x, y, diff);
+            println!("x: {x}, y: {y} diff: {diff}");
         }
     }
 
@@ -619,8 +617,8 @@ mod tests {
         let b = p(b, decimals_b);
         let actual = sqrt_price_from_scope_prices(a, b, decimals_a, decimals_b).unwrap();
 
-        println!("expected: {}", expected);
-        println!("actual: {}", actual);
+        println!("expected: {expected}");
+        println!("actual: {actual}");
 
         println!(
             "initial: {}, final: {}",
@@ -639,10 +637,10 @@ mod tests {
         let sa = p(fa, decimals_a); // scope a
         let sb = p(fb, decimals_b); // scope b
 
-        println!("uA: {}, uB: {}", ua, ub);
-        println!("fA: {}, fB: {}", fa, fb);
-        println!("sA: {:?}, sB: {:?}", sa, sb);
-        println!("dA: {}, dB: {}", decimals_a, decimals_b);
+        println!("uA: {ua}, uB: {ub}");
+        println!("fA: {fa}, fB: {fb}");
+        println!("sA: {sa:?}, sB: {sb:?}");
+        println!("dA: {decimals_a}, dB: {decimals_b}");
 
         if sa.value == 0 || sb.value == 0 {
             return None;
@@ -656,8 +654,8 @@ mod tests {
 
         let actual = sqrt_price_from_scope_prices(sa, sb, decimals_a, decimals_b).unwrap();
 
-        println!("expected: {}", expected);
-        println!("actual: {}", actual);
+        println!("expected: {expected}");
+        println!("actual: {actual}");
 
         let float_expected = price;
         let float_actual = calc_price_from_sqrt_price(actual, decimals_a, decimals_b);
@@ -769,10 +767,10 @@ mod tests {
             let expected = calc_price_from_sqrt_price(expected_sqrt, decimals_a, decimals_b);
             let actual = calc_price_from_sqrt_price(actual, decimals_a, decimals_b);
             let diff_pct = (actual - expected) / expected * 100.0;
-            println!("expected_sqrt: {}", expected_sqrt);
-            println!("actual: {}", actual);
-            println!("expected: {}", expected);
-            println!("diff: {}%", diff_pct);
+            println!("expected_sqrt: {expected_sqrt}");
+            println!("actual: {actual}");
+            println!("expected: {expected}");
+            println!("diff: {diff_pct}%");
             println!("---");
             assert!(diff_pct.abs() < tolerance) // 0.07% diff
         }
