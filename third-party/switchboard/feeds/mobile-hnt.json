@@ -1,0 +1,27 @@
+{
+  "jobs": [
+    {
+      "name": "Orca MOBILE/HNT",
+      "tasks": [
+        {
+          "valueTask": {
+            "big": "1.0"
+          }
+        },
+        {
+          "divideTask": {
+            "job": {
+              "tasks": [
+                {
+                  "lpExchangeRateTask": {
+                    "orcaPoolAddress": "45zpzzpZquaVv4BAdXfzNbuba7DAXV32d1sTrUh5wcnW"
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
