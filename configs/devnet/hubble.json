@@ -495,7 +495,7 @@
   },
   "100": {
     "label": "CHAI/USD",
-    "oracle_mapping": "UTbf6EKbwgwNmW9SQuJSKLhAn2Fpsn9x1a2taoXicfi", 
+    "oracle_mapping": "UTbf6EKbwgwNmW9SQuJSKLhAn2Fpsn9x1a2taoXicfi",
     "oracle_type": "SwitchboardV2",
     "max_age": 200
   },
@@ -535,10 +535,52 @@
     "oracle_type": "SwitchboardV2",
     "max_age": 200
   },
-  "107": {
-    "label": "TWAP EUROE/USD",
-    "oracle_mapping": "UTbf6EKbwgwNmW9SQuJSKLhAn2Fpsn9x1a2taoXicfi",
-    "oracle_type": "SwitchboardV2",
-    "max_age": 200
+  "108": {
+    "label": "Fake kSOL-bSOL_Orca/USD",
+    "oracle_mapping": "EbRR6C3uCRwnHjvbJuuiaipvVCVLYb2ZL5B3GH4zm3FH",
+    "oracle_type": "KToken",
+    "max_age": 250
+  },
+  "109": {
+    "label": "Fake kMNDE-MSOL_Orca/USD",
+    "oracle_mapping": "EbRR6C3uCRwnHjvbJuuiaipvVCVLYb2ZL5B3GH4zm3FH",
+    "oracle_type": "KToken",
+    "max_age": 250
+  },
+  "110": {
+    "label": "Fake kSTSOL-USDC_Orca/USD",
+    "oracle_mapping": "EbRR6C3uCRwnHjvbJuuiaipvVCVLYb2ZL5B3GH4zm3FH",
+    "oracle_type": "KToken",
+    "max_age": 250
+  },
+  "111": {
+    "label": "Fake kUSDH-USDT_Orca/USD",
+    "oracle_mapping": "EbRR6C3uCRwnHjvbJuuiaipvVCVLYb2ZL5B3GH4zm3FH",
+    "oracle_type": "KToken",
+    "max_age": 250
+  },
+  "112": {
+    "label": "Fake kSOL-JITOSOL_Orca/USD",
+    "oracle_mapping": "EbRR6C3uCRwnHjvbJuuiaipvVCVLYb2ZL5B3GH4zm3FH",
+    "oracle_type": "KToken",
+    "max_age": 250
+  },
+  "113": {
+    "label": "Fake kbSOL-MSOL_Orca/USD",
+    "oracle_mapping": "EbRR6C3uCRwnHjvbJuuiaipvVCVLYb2ZL5B3GH4zm3FH",
+    "oracle_type": "KToken",
+    "max_age": 250
+  },
+  "114": {
+    "label": "Fake kMSOL-JITOSOL_Orca/USD",
+    "oracle_mapping": "EbRR6C3uCRwnHjvbJuuiaipvVCVLYb2ZL5B3GH4zm3FH",
+    "oracle_type": "KToken",
+    "max_age": 250
+  },
+  "115": {
+    "label": "Fake kSOL-USDC_Orca/USD",
+    "oracle_mapping": "EbRR6C3uCRwnHjvbJuuiaipvVCVLYb2ZL5B3GH4zm3FH",
+    "oracle_type": "KToken",
+    "max_age": 250
   }
 }
